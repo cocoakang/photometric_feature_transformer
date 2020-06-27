@@ -53,7 +53,7 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
         global_frame=[n,t,b]
 
         ###double param 
-        param_2 = torch.unsqueeze(param,dim=1).repeat(1,2,1).reshape(batch_size*2,7)
+        param_2 = torch.unsqueeze(param,dim=1).repeat(1,2,1).reshape(batch_size*2,11)
         position_2 = torch.unsqueeze(position,dim=1).repeat(1,2,1).reshape(batch_size*2,3)
         for i in range(3):
             global_frame[i] = torch.unsqueeze(global_frame[i],dim=1).repeat(1,2,1).reshape(batch_size*2,3)
@@ -77,7 +77,7 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
             exit()
 
         rendered_result = rendered_result*RENDER_SCALAR
-        rendered_result = rendered_result.reshape(batch_size,2,setup.get_light_num(),1)
+        rendered_result = rendered_result.reshape(batch_size,2,setup.get_light_num(),3)
         rendered_result = rendered_result.permute(1,0,2,3)
 
         # print("[MINE PRO PROCESS] contructing...{}".format(self.mine.name))

@@ -27,11 +27,11 @@ def log_loss(writer,loss_terms,global_step,is_training):
 
     for a_key in loss_terms:
         if "loss_e1_train_tamer" in a_key and is_training:
-            writer.add_scalar('define_summaray/loss_e1_train_tamer', loss_terms[a_key], global_step)
+            writer.add_scalar('loss_e1_train_tamer', loss_terms[a_key], global_step)
         elif "loss_e1_train_tamer" in a_key and not is_training:
-            writer.add_scalar('define_summaray/loss_e1_val_tamer', loss_terms[a_key], global_step)
+            writer.add_scalar('loss_e1_val_tamer', loss_terms[a_key], global_step)
         else:
-            writer.add_scalar('define_summaray/{}'.format(a_key)+train_val_postfix, loss_terms[a_key], global_step)
+            writer.add_scalar('{}'.format(a_key)+train_val_postfix, loss_terms[a_key], global_step)
 
 def log_quality(writer,quality_terms,global_step):
     term_key = "multiview_lumi_img"
@@ -40,13 +40,7 @@ def log_quality(writer,quality_terms,global_step):
     for which_sample in range(batch_size):
         writer.add_image("{}/{}".format(term_key,which_sample), quality_terms[term_key][which_sample],  global_step=global_step, dataformats='CHW')
 
-    term_key = "lighting_patterns"
-    m_len = quality_terms[term_key].shape[0]
-    for which_m in range(m_len):
-        grid_image = torchvision.utils.make_grid((torch.from_numpy(quality_terms[term_key][which_m])).permute(0,3,1,2), nrow=4, padding=5, pad_value=0)
-        writer.add_image("{}/{}".format(term_key,which_m),grid_image, global_step=global_step, dataformats='CHW')
-
-    term_key = "lighting_pattern_abnormal"
+    term_key = "lighting_pattern_rgb"
     m_len = quality_terms[term_key].shape[0]
     for which_m in range(m_len):
         grid_image = torchvision.utils.make_grid((torch.from_numpy(quality_terms[term_key][which_m])).permute(0,3,1,2), nrow=4, padding=5, pad_value=0)
@@ -62,10 +56,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=2)
-    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
     parser.add_argument("--sample_view_num",type=int,default=24)
-    parser.add_argument("--measurement_num",type=int,default=16)
+    parser.add_argument("--measurement_num",type=int,default=4)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
     parser.add_argument("--dift_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
@@ -122,7 +116,7 @@ if __name__ == "__main__":
     training_net = DIFT_TRAIN_NET(train_configs)
     training_net.to(train_configs["training_device"])
     
-    optimizer = optim.Adam(training_net.parameters(), lr=1e-4)
+    optimizer = optim.Adam(training_net.parameters(), lr=1e-4,weight_decay=1e-4)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50000, gamma=0.9)
 
@@ -130,7 +124,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="final_12x6_noisedidx_2sigma_nosw_newdata_xw")
+        writer = SummaryWriter(comment="dift_rgb")
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")
@@ -224,8 +218,8 @@ if __name__ == "__main__":
         # for i in range(len(time_elspase)):
         #     print("{:0.3} {:0.3} |".format(time_elspase[i],time_ratio[i]),end="")
         # print("\n")
-        if global_step > 1000000:
-            scheduler.step()
+        # if global_step > 1000000:
+        #     scheduler.step()
         loss_log_terms["lr"] = optimizer.param_groups[0]['lr']
         log_loss(writer,loss_log_terms,global_step,True)
         # if global_step == 14526:

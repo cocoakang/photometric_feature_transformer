@@ -99,6 +99,13 @@ class Mine:
             origin[where] = new_data
         return origin
 
+    def sample_color(self,min_rho,max_rho):
+        '''
+        return [batch_size,3]
+        '''
+        tmp_color = np.random.rand(self.batch_size,3)*(max_rho-min_rho) + min_rho
+        return tmp_color
+
     def generate_batch_positions(self,batch_size):
         return np.random.uniform(param_bounds["box"][0],param_bounds["box"][1],[batch_size,3]).astype(np.float32)
 
@@ -112,10 +119,13 @@ class Mine:
         tmp_params[:,6:8] = self.__rejection_sampling_axay(test_tangent_flag)
         # tmp_params[:,7] = tmp_params[:,6]
         new_positions = self.generate_batch_positions(self.batch_size)
+        tmp_params = np.concatenate([
+            tmp_params[:,3:3+5],
+            np.random.uniform(param_bounds["pd"][0],param_bounds["pd"][1],[self.batch_size,3]).astype(np.float32),
+            np.random.uniform(param_bounds["ps"][0],param_bounds["ps"][1],[self.batch_size,3]).astype(np.float32)
+        ],axis=-1)
 
-        # tmp_params[:,-2] = 0
-
-        input_params = torch.from_numpy(tmp_params[:,3:10]).to(self.rendering_device)
+        input_params = torch.from_numpy(tmp_params).to(self.rendering_device)
         input_positions = torch.from_numpy(new_positions[:,:3]).to(self.rendering_device)
 
         ##################################################################

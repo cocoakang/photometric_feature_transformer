@@ -66,14 +66,14 @@ class DIFT_TRAIN_NET(nn.Module):
         # start = time.time()
         # end_time = [start]
         # stamp_name=[]
-        input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,1)
+        input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,3)
 
         ############################################################################################################################
         ## step 2 draw nn net
         ############################################################################################################################
         #1 first we project every lumitexel to measurements
-        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
-        measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
+        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),3)
+        measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,3)
         
         #concatenate measurements
         dift_codes = self.dift_net(measurements)#(2*batch,diftcodelen)
@@ -95,7 +95,7 @@ class DIFT_TRAIN_NET(nn.Module):
             term_map = {
                 "input_lumis":input_lumis.cpu(),
                 "distance_matrix":D.cpu(),
-                "lighting_pattern":[self.linear_projection.get_lighting_patterns(self.training_device)]
+                "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device)
             }
             term_map = self.visualize_quality_terms(term_map)
             return term_map
@@ -174,34 +174,19 @@ class DIFT_TRAIN_NET(nn.Module):
         lighting_pattern = [a_kernel.cpu().detach().numpy() for a_kernel in quality_map["lighting_pattern"]]
         
         lighting_pattern_collector = []
-        lighting_pattern_abnormal_collector = []
-        for which_view in range(len(lighting_pattern)):
-            lp_pos = np.maximum(0.0,lighting_pattern[which_view])
-            lp_pos_max = lp_pos.max()
-            lp_pos = torch_render.visualize_lumi(lp_pos,self.setup)[:,:,:,[0]]
-            lp_neg = torch_render.visualize_lumi(-np.minimum(0.0,lighting_pattern[which_view]),self.setup)[:,:,:,[0]]
-            lp = np.concatenate([lp_pos,np.zeros_like(lp_pos),lp_neg],axis=-1)#(lightingpattern_num,img_height,img_width,3)
-            lp = lp / (lp_pos_max+1e-6)
+        for which_m in range(len(lighting_pattern)):
+            lp_pos = np.maximum(0.0,lighting_pattern[which_m])
+            lp_pos_max = (lp_pos.max()+1e-6)
+            lp_pos = torch_render.visualize_lumi(lp_pos/lp_pos_max,self.setup,is_batch_lumi=False)#(imgheight,imgwidth,3)
+            lp_neg = -np.minimum(0.0,lighting_pattern[which_m])
+            lp_neg_max = (lp_neg.max()+1e-6)
+            lp_neg = torch_render.visualize_lumi(lp_neg/lp_neg_max,self.setup,is_batch_lumi=False)#(imgheight,imgwidth,3)
 
-            lp_pos_abnormal = np.maximum(1.0,lighting_pattern[which_view])-1.0
-            lp_pos_abnormal = lp_pos_abnormal/(1e-6+lp_pos_abnormal.max())
-            lp_pos_abnormal = torch_render.visualize_lumi(lp_pos_abnormal,self.setup)[:,:,:,[0]]
-
-            lp_neg_abnormal = -np.minimum(0.0,lighting_pattern[which_view])
-            lp_neg_abnormal = lp_neg_abnormal/(1e-6+lp_neg_abnormal.max())
-            lp_neg_abnormal = torch_render.visualize_lumi(lp_neg_abnormal,self.setup)[:,:,:,[0]]
-            lp_abnormal = np.concatenate([lp_pos_abnormal,np.zeros_like(lp_pos_abnormal),lp_neg_abnormal],axis=-1)
-
-            lighting_pattern_collector.append(lp)
-            lighting_pattern_abnormal_collector.append(lp_abnormal)
+            lighting_pattern_collector.append(lp_pos)
+            lighting_pattern_collector.append(lp_neg)
 
 
-        lighting_pattern_collector = np.array(lighting_pattern_collector)#(which_view,lightingpattern_num,img_height,img_width,3)
-        lighting_pattern_collector = np.transpose(lighting_pattern_collector,[1,0,2,3,4])
-        result_map["lighting_patterns"] = lighting_pattern_collector
-
-        lighting_pattern_abnormal_collector = np.array(lighting_pattern_abnormal_collector)
-        lighting_pattern_abnormal_collector = np.transpose(lighting_pattern_abnormal_collector,[1,0,2,3,4])
-        result_map["lighting_pattern_abnormal"] = lighting_pattern_abnormal_collector
+        lighting_pattern_collector = np.array(lighting_pattern_collector).reshape([self.measurements_length,2,*(self.setup.img_size),3])#(lightingpattern_num,2,img_height,img_width,3)
+        result_map["lighting_pattern_rgb"] = lighting_pattern_collector
 
         return result_map

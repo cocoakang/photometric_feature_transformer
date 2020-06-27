@@ -13,7 +13,7 @@ class DIFT_NET(nn.Module):
         self.dift_code_len = args["dift_code_len"]
         self.keep_prob = 0.9
         #############construct model
-        input_size = self.measurements_length*1
+        input_size = self.measurements_length*3
         
         self.dift_part = self.dift_part_f(input_size)
             
