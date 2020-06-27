@@ -1,0 +1,10 @@
+SET DATA_ROOT="D:/CVPR21_freshmeat/6_21_third_try/golden_pig/"
+SET MODEL_ROOT="D:/CVPR21_models/6_21_third_try/models/"
+SET MODEL_FILE_NAME="model_state_2500000.pkl"
+
+SET ROTATE_VIEW_NUM=2
+SET MEASUREMENT_LEN=16
+SET DIFT_CODE_LEN=128
+
+python infer_dift_codes.py %DATA_ROOT% %MODEL_ROOT% %MODEL_FILE_NAME% %ROTATE_VIEW_NUM% %MEASUREMENT_LEN% %DIFT_CODE_LEN%
+python compact_dift_codes.py %DATA_ROOT% %ROTATE_VIEW_NUM% %DIFT_CODE_LEN%
