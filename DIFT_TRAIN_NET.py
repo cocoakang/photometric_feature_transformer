@@ -129,8 +129,6 @@ class DIFT_TRAIN_NET(nn.Module):
 
         total_loss = l2_loss#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
 
-        if global_step > 25610:
-            print("globalstep:{} loss:{}".format(global_step,E1.item()))
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
             "total":total_loss.item(),
