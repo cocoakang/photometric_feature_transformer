@@ -107,7 +107,10 @@ class Mine:
         return tmp_color
 
     def generate_batch_positions(self,batch_size):
-        return np.random.uniform(param_bounds["box"][0],param_bounds["box"][1],[batch_size,3]).astype(np.float32)
+        return np.concatenate([
+            np.random.uniform(param_bounds["box"][0],param_bounds["box"][1],[batch_size,2]),
+            np.random.uniform(-30.0,120.0,[batch_size,1])
+        ],axis=-1)
 
     def generate_training_data(self,test_tangent_flag = False):
         tmp_params = self.buffer_params[self.current_ptr:self.current_ptr+self.batch_size]
@@ -156,7 +159,9 @@ class Mine:
                 break
 
             new_positions = torch.from_numpy(self.generate_batch_positions(invalid_num)).to(self.rendering_device)
+            new_n2d = torch.from_numpy(np.random.uniform(param_bounds["n"][0],param_bounds["n"][1],[self.batch_size,2]).astype(np.float32)).to(self.rendering_device)
             input_positions[invalid_idxes] = new_positions
+            input_params[invalid_idxes,:2] = new_n2d
         ##################################################################
         ###select two visible view
         ##################################################################
