@@ -48,9 +48,9 @@ class DIFT_TRAIN_NET(nn.Module):
         self.dift_net = DIFT_NET(args)
         # self.material_net = SIGA20_NET_material(args)
         # self.decompose_net = SIGA20_NET_m_decompose(args)
-        self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
+        # self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
         # self.l2_loss_fn_none = torch.nn.MSELoss(reduction='none')
-        # self.regularizer = Regularization(self.material_net,self.lambdas["weight"])#self.reg_alpha)
+        self.regularizer = Regularization(self.dift_net,1.0)#self.reg_alpha)
 
 
     def forward(self,batch_data,call_type="train",global_step=-1):
@@ -107,7 +107,7 @@ class DIFT_TRAIN_NET(nn.Module):
         D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]
         s_ii_c = D_ii / (eps+D_col_sum)
         #"compute_row_loss"
-        D_row_sum = torch.sum(D_exp,axis=1,keepdim=True)#[batch,1]
+        D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
         s_ii_r = D_ii / (eps+D_row_sum)
         
         E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
@@ -125,13 +125,16 @@ class DIFT_TRAIN_NET(nn.Module):
         l2_loss =   E1
 
         ### !6 reg loss
-        # reg_loss = self.regularizer(self.material_net)
+        reg_loss = self.regularizer(self.dift_net)
 
         total_loss = l2_loss#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
 
+        if global_step > 25610:
+            print("globalstep:{} loss:{}".format(global_step,E1.item()))
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
-            "total":total_loss.item()
+            "total":total_loss.item(),
+            "loss_reg_tamer":reg_loss.item()
         }
         return total_loss,loss_log_map
     

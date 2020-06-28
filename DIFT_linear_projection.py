@@ -16,6 +16,13 @@ class DIFT_linear_projection(nn.Module):
 
         tmp_kernel = torch.empty(self.measurements_length,self.lumitexel_length,3)
         nn.init.xavier_uniform_(tmp_kernel)
+        # tmp_kernel_np = tmp_kernel.cpu().numpy()
+        # tmp_kernel_np.astype(np.float32).tofile("/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/BRDF_feature_extract/logs/sig20_init/details/params_init/0_tc.bin")
+        
+        # tmp_kernel_np = np.fromfile("/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/BRDF_feature_extract/logs/sig20_init/details/params_init/0.bin",np.float32).reshape([3,24576,4])
+        # tmp_kernel_np = np.transpose(tmp_kernel_np,[2,1,0])
+        # tmp_kernel = torch.from_numpy(tmp_kernel_np)
+
         self.kernel = torch.nn.Parameter(
             data = tmp_kernel,
             requires_grad=True

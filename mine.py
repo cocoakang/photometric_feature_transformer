@@ -13,7 +13,7 @@ param_bounds["theta"] = (0.0,math.pi)
 param_bounds["a"] = (0.006,0.503)
 param_bounds["pd"] = (0.0,1.0)
 param_bounds["ps"] = (0.0,10.0)
-param_bounds["box"] = (-50.0,50.0)
+param_bounds["box"] = (-75.0,75.0)
 param_bounds["angle"] = (0.0,2.0*math.pi)
 
 class Mine:
@@ -85,17 +85,17 @@ class Mine:
 
     def __rejection_sampling_axay(self,test_tangent_flag):
         origin = np.exp(np.random.uniform(np.log(param_bounds["a"][0]),np.log(param_bounds["a"][1]),[self.batch_size,2]))
-        origin = np.where(origin[:,[0]]>origin[:,[1]],origin,origin[:,::-1])
+        # origin = np.where(origin[:,[0]]>origin[:,[1]],origin,origin[:,::-1])
         while True:
             still_need = np.logical_and(origin[:,0]>0.35,origin[:,1] >0.35)
-            if test_tangent_flag:
-                still_need = np.logical_or(still_need,origin[:,1]*3>origin[:,0])
+            # if test_tangent_flag:
+            #     still_need = np.logical_or(still_need,origin[:,1]*3>origin[:,0])
             where = np.nonzero(still_need)
             num = where[0].shape[0]
             if num == 0:
                 break
             new_data= np.exp(np.random.uniform(np.log(param_bounds["a"][0]),np.log(param_bounds["a"][1]),[num,2]))
-            new_data = np.where(new_data[:,[0]]>new_data[:,[1]],new_data,new_data[:,::-1])
+            # new_data = np.where(new_data[:,[0]]>new_data[:,[1]],new_data,new_data[:,::-1])
             origin[where] = new_data
         return origin
 
@@ -104,13 +104,13 @@ class Mine:
         return [batch_size,3]
         '''
         tmp_color = np.random.rand(self.batch_size,3)*(max_rho-min_rho) + min_rho
-        return tmp_color
+        return tmp_color.astype(np.float32)
 
     def generate_batch_positions(self,batch_size):
         return np.concatenate([
             np.random.uniform(param_bounds["box"][0],param_bounds["box"][1],[batch_size,2]),
             np.random.uniform(-30.0,120.0,[batch_size,1])
-        ],axis=-1)
+        ],axis=-1).astype(np.float32)
 
     def generate_training_data(self,test_tangent_flag = False):
         tmp_params = self.buffer_params[self.current_ptr:self.current_ptr+self.batch_size]
@@ -124,8 +124,8 @@ class Mine:
         new_positions = self.generate_batch_positions(self.batch_size)
         tmp_params = np.concatenate([
             tmp_params[:,3:3+5],
-            np.random.uniform(param_bounds["pd"][0],param_bounds["pd"][1],[self.batch_size,3]).astype(np.float32),
-            np.random.uniform(param_bounds["ps"][0],param_bounds["ps"][1],[self.batch_size,3]).astype(np.float32)
+            self.sample_color(param_bounds["pd"][0],param_bounds["pd"][1]),
+            self.sample_color(param_bounds["ps"][0],param_bounds["ps"][1])
         ],axis=-1)
 
         input_params = torch.from_numpy(tmp_params).to(self.rendering_device)
@@ -157,9 +157,8 @@ class Mine:
             invalid_num = invalid_idxes.size()[0]
             if invalid_num == 0:
                 break
-
             new_positions = torch.from_numpy(self.generate_batch_positions(invalid_num)).to(self.rendering_device)
-            new_n2d = torch.from_numpy(np.random.uniform(param_bounds["n"][0],param_bounds["n"][1],[self.batch_size,2]).astype(np.float32)).to(self.rendering_device)
+            new_n2d = torch.from_numpy(np.random.uniform(param_bounds["n"][0],param_bounds["n"][1],[invalid_num,2]).astype(np.float32)).to(self.rendering_device)
             input_positions[invalid_idxes] = new_positions
             input_params[invalid_idxes,:2] = new_n2d
         ##################################################################
