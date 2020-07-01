@@ -13,7 +13,7 @@ class DIFT_NET(nn.Module):
         self.dift_code_len = args["dift_code_len"]
         self.keep_prob = 0.9
         #############construct model
-        input_size = self.measurements_length*3
+        input_size = self.measurements_length*3+2
         
         self.dift_part = self.dift_part_f(input_size)
             
@@ -152,14 +152,16 @@ class DIFT_NET(nn.Module):
 
         return layer_stack
 
-    def forward(self,batch_data):
+    def forward(self,batch_data,view_ids_cossin):
         '''
         batch_data=(batch_size,sample_view_num,m_len,1)
+        view_ids_cossin = (batch_size,2)
         '''
         batch_size = batch_data.size()[0]
         device = batch_data.device
 
         x_n = batch_data.reshape(batch_size,-1)
+        x_n = torch.cat([x_n,view_ids_cossin],dim=1)
 
         dift_codes = self.dift_part(x_n)
         dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)

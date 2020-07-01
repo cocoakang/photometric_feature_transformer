@@ -67,6 +67,7 @@ class DIFT_TRAIN_NET(nn.Module):
         # end_time = [start]
         # stamp_name=[]
         input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,3)
+        view_ids_cossin = batch_data["view_ids_cossin"].to(self.training_device)
 
         ############################################################################################################################
         ## step 2 draw nn net
@@ -74,9 +75,9 @@ class DIFT_TRAIN_NET(nn.Module):
         #1 first we project every lumitexel to measurements
         input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),3)
         measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,3)
-        
+        view_ids_cossin = view_ids_cossin.reshape(2*self.batch_size,2)
         #concatenate measurements
-        dift_codes = self.dift_net(measurements)#(2*batch,diftcodelen)
+        dift_codes = self.dift_net(measurements,view_ids_cossin)#(2*batch,diftcodelen)
         dift_codes = dift_codes.reshape(2,self.batch_size,self.dift_code_len)
 
         ############################################################################################################################

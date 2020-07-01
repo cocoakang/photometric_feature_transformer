@@ -84,10 +84,21 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
         # print("param {}:".format(name),param[-3:])
         # print("position {}:".format(name),position[-3:])
         # exit()
+
+        view_ids_cossin = torch.cat(
+            [
+                torch.sin(rotate_angles),
+                torch.cos(rotate_angles)
+            ],dim=1
+        )
+        view_ids_cossin = view_ids_cossin.reshape(batch_size,2,2)
+        view_ids_cossin = view_ids_cossin.permute(1,0,2)
+
         training_data_map = {
             "input_lumi":rendered_result,
             "param":param,
             "position":position,
+            "view_ids_cossin":view_ids_cossin
         }
         # print("[MINE PRO PROCESS] putting data...{}".format(self.mine.name))
         output_queue.put(training_data_map)
