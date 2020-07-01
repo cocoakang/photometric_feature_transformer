@@ -137,15 +137,16 @@ class Mine:
         while True:
             n2d = input_params[:,:2]#(batch_size,2)
             # theta = tmp_param[:,[2]]#(batch_size,1)
-            view_dir = self.setup_input.get_cam_pos_torch(self.rendering_device) - input_positions #shape=[batch,3]
-            view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
+            # view_dir = self.setup_input.get_cam_pos_torch(self.rendering_device) - input_positions #shape=[batch,3]
+            # view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
 
-            frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
-            frame_n = view_dir#[batch,3]
+            # frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
+            # frame_n = view_dir#[batch,3]
 
-            n_local = torch_render.back_hemi_octa_map(n2d)#[batch,3]
-            normal = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
-        
+            # n_local = torch_render.back_hemi_octa_map(n2d)#[batch,3]
+            # normal = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
+            normal = torch_render.back_full_octa_map(n2d)#(batch,3)
+
             tmp_normal = torch.unsqueeze(normal,dim=1).repeat(1,self.sample_view_num,1).reshape(self.batch_size*self.sample_view_num,3)
             tmp_position = torch.unsqueeze(input_positions,dim=1).repeat(1,self.sample_view_num,1).reshape(self.batch_size*self.sample_view_num,3)
             tmp_rotate_theta = self.sampled_rotate_angles_tc.clone()

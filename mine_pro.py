@@ -36,21 +36,21 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
         n2d = param[:,:2]#(batch_size,2)
         theta = param[:,[2]]#(batch_size,1)
 
-        view_dir = args["setup_input"].get_cam_pos_torch(position.device) - position #shape=[batch,3]
-        view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
-        frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
-        frame_n = view_dir#[batch,3]
+        # view_dir = args["setup_input"].get_cam_pos_torch(position.device) - position #shape=[batch,3]
+        # view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
+        # frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
+        # frame_n = view_dir#[batch,3]
 
-        n_local = torch_render.back_hemi_octa_map(n2d)#[batch,3]
-        t_local,_ = torch_render.build_frame_f_z(n_local,theta,with_theta=True)
-        n = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
-        t = t_local[:,[0]]*frame_t+t_local[:,[1]]*frame_b+t_local[:,[2]]*frame_n#[batch,3]
-        b = torch.cross(n,t)#[batch,3]
+        # n_local = torch_render.back_hemi_octa_map(n2d)#[batch,3]
+        # t_local,_ = torch_render.build_frame_f_z(n_local,theta,with_theta=True)
+        # n = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
+        # t = t_local[:,[0]]*frame_t+t_local[:,[1]]*frame_b+t_local[:,[2]]*frame_n#[batch,3]
+        # b = torch.cross(n,t)#[batch,3]
         
-        # normal = torch_render.back_full_octa_map(n2d)#(batch_size,3)
-        # tangent,binormal =torch_render.build_frame_f_z(normal,theta)
-        # global_frame = [normal,tangent,binormal]
-        global_frame=[n,t,b]
+        normal = torch_render.back_full_octa_map(n2d)#(batch_size,3)
+        tangent,binormal =torch_render.build_frame_f_z(normal,theta)
+        global_frame = [normal,tangent,binormal]
+        # global_frame=[n,t,b]
 
         ###double param 
         param_2 = torch.unsqueeze(param,dim=1).repeat(1,2,1).reshape(batch_size*2,11)
