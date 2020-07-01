@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("dift_code_len",type=int)
 
     parser.add_argument("--batch_size",type=int,default=5000)
-    parser.add_argument("--scalar",type=float,default=184.0)
+    parser.add_argument("--scalar",type=float,default=30.0)#184.0)
 
     args = parser.parse_args()
 
@@ -52,9 +52,8 @@ if __name__ == "__main__":
         cur_root = args.root+"{}/".format(which_view)
         cur_save_root = save_root+"{}/".format(which_view)
         os.makedirs(cur_save_root,exist_ok=True)
-        measurments = np.fromfile(cur_root+"cam00_data_{}_nocc_compacted.bin".format(args.measurement_len*2),np.float32).reshape([-1,3,args.measurement_len])
+        measurments = np.fromfile(cur_root+"cam00_data_{}_nocc_compacted.bin".format(args.measurement_len*2),np.float32).reshape([-1,args.measurement_len,3])
         measurments = measurments * args.scalar
-        measurments = np.mean(measurments,axis=1)
 
         pf_save = open(cur_save_root+"feature.bin".format(which_view),"wb")
 
