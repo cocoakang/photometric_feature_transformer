@@ -1,9 +1,9 @@
-SET DATA_ROOT="D:/CVPR21_freshmeat/7_2_fixdata/sphere/"
-SET MODEL_ROOT="D:/CVPR21_models/7_2_fixdata/models/"
-SET MODEL_FILE_NAME="model_state_1900000.pkl"
+SET DATA_ROOT="D:/CVPR21_freshmeat/7_2_test_rowval/sphere/"
+SET MODEL_ROOT="D:/CVPR21_models/7_2_test_rowval/models/"
+SET MODEL_FILE_NAME="model_state_200000.pkl"
 
 SET SAMPLE_VIEW_NUM=24
-SET ROTATE_VIEW_NUM=8
+SET ROTATE_VIEW_NUM=1
 SET MEASUREMENT_LEN=4
 SET DIFT_CODE_LEN=128
 SET VIEW_CODE_LEN=128
