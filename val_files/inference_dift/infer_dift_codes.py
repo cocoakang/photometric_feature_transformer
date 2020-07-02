@@ -3,6 +3,10 @@ import numpy as np
 import argparse
 import os
 import math
+import sys
+TORCH_RENDER_PATH="../../../torch_renderer/"
+sys.path.append(TORCH_RENDER_PATH)
+from torch_render import Setup_Config
 from DIFT_NET_inuse import DIFT_NET_inuse
 
 if __name__ == "__main__":
@@ -24,8 +28,14 @@ if __name__ == "__main__":
 
     ################################################
     #####load net
-    ################################################
-    nn_model = DIFT_NET_inuse(args)
+    #################################################
+    # #about rendering devices
+    standard_rendering_parameters = {
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
+    }
+    setup_input = Setup_Config(standard_rendering_parameters)
+
+    nn_model = DIFT_NET_inuse(args,setup_input)
     pretrained_dict = torch.load(args.model_root + args.model_file_name, map_location='cuda:0')
     print("loading trained model...")
     model_dict = nn_model.state_dict()
@@ -70,15 +80,8 @@ if __name__ == "__main__":
             if cur_batch_size == 0:
                 break
             tmp_measurements = torch.from_numpy(tmp_measurements).to("cuda:0")
-            sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1)
+            sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1).to("cuda:0")
             sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]
-            sampled_rotate_angles = torch.cat(
-                [
-                    torch.sin(sampled_rotate_angles),
-                    torch.cos(sampled_rotate_angles)
-                ],dim=1
-            )
-            sampled_rotate_angles = sampled_rotate_angles.to(tmp_measurements.device)
             with torch.no_grad():
                 dift_codes = nn_model(tmp_measurements,sampled_rotate_angles)
             
