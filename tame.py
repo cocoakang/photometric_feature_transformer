@@ -56,12 +56,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=2)
-    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--training_gpu",type=int,default=3)
+    parser.add_argument("--rendering_gpu",type=int,default=3)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=4)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
     parser.add_argument("--dift_code_len",type=int,default=128)
+    parser.add_argument("--view_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -88,6 +89,7 @@ if __name__ == "__main__":
     train_configs["noise_stddev"] = args.m_noise_rate
     train_configs["setup_input"] = setup_input
     train_configs["dift_code_len"] = args.dift_code_len
+    train_configs["view_code_len"] = args.view_code_len
 
     lambdas = {}
     lambdas["diff"] =1.0
@@ -124,7 +126,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="dift_rgb_viewid_fixdata")
+        writer = SummaryWriter(comment="dift_rgb_viewidnet_fixdata")
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")

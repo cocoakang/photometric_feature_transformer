@@ -20,7 +20,8 @@ class DIFT_NET_inuse(nn.Module):
 
         training_configs = {
             "measurements_length" : args.measurement_len,
-            "dift_code_len" : args.dift_code_len
+            "dift_code_len" : args.dift_code_len,
+            "view_code_len" : args.view_code_len
         }
 
         ########################################
@@ -28,12 +29,12 @@ class DIFT_NET_inuse(nn.Module):
         ########################################
         self.dift_net = DIFT_NET(training_configs)
 
-    def forward(self,batch_data):
+    def forward(self,batch_data,sampled_rotate_angles):
         '''
         batch_data = (batch_size,m_len,1)
         '''
         # batch_size = batch_data.size()[0]
 
-        infered_dift_codes = self.dift_net(batch_data)#(batch,3)
+        infered_dift_codes = self.dift_net(batch_data,sampled_rotate_angles)#(batch,3)
 
         return infered_dift_codes

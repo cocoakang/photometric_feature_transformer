@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import argparse
 import os
+import math
 from DIFT_NET_inuse import DIFT_NET_inuse
 
 if __name__ == "__main__":
@@ -10,9 +11,11 @@ if __name__ == "__main__":
     parser.add_argument("model_root")
     parser.add_argument("model_file_name")
 
+    parser.add_argument("sample_view_num",type=int)
     parser.add_argument("rotate_num",type=int)
     parser.add_argument("measurement_len",type=int)
     parser.add_argument("dift_code_len",type=int)
+    parser.add_argument("view_code_len",type=int)
 
     parser.add_argument("--batch_size",type=int,default=5000)
     parser.add_argument("--scalar",type=float,default=30.0)#184.0)
@@ -47,6 +50,9 @@ if __name__ == "__main__":
     ################################################
     ####infer here
     ################################################
+    sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=args.sample_view_num,endpoint=False)
+    sampled_rotate_angles_np = np.expand_dims(sampled_rotate_angles_np,axis=0).astype(np.float32)
+
     for which_view in range(args.rotate_num):
         print("view{}/{}".format(which_view,args.rotate_num-1))
         cur_root = args.root+"{}/".format(which_view)
@@ -64,8 +70,17 @@ if __name__ == "__main__":
             if cur_batch_size == 0:
                 break
             tmp_measurements = torch.from_numpy(tmp_measurements).to("cuda:0")
+            sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1)
+            sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]
+            sampled_rotate_angles = torch.cat(
+                [
+                    torch.sin(sampled_rotate_angles),
+                    torch.cos(sampled_rotate_angles)
+                ],dim=1
+            )
+            sampled_rotate_angles = sampled_rotate_angles.to(tmp_measurements.device)
             with torch.no_grad():
-                dift_codes = nn_model(tmp_measurements)
+                dift_codes = nn_model(tmp_measurements,sampled_rotate_angles)
             
             dift_codes = dift_codes.cpu().numpy()
             dift_codes.astype(np.float32).tofile(pf_save)
