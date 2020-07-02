@@ -70,6 +70,8 @@ class DIFT_TRAIN_NET(nn.Module):
         view_ids_cossin = batch_data["view_ids_cossin"].to(self.training_device)
         global_positions = batch_data["position"].to(self.training_device)#(batchsize,3)
         normal_label = batch_data["normal"].to(self.training_device)#(2*batchsize,3)
+        normal_label_local = batch_data["normal_local"].to(self.training_device)#(2*batchsize,3)
+        rotate_theta = batch_data["rotate_theta"].to(self.training_device)#(2*batchsize,1)
 
         ############################################################################################################################
         ## step 2 draw nn net
@@ -80,7 +82,9 @@ class DIFT_TRAIN_NET(nn.Module):
         view_ids_cossin = view_ids_cossin.reshape(2*self.batch_size,2)
         #concatenate measurements
         dift_codes_origin = self.dift_net(measurements,view_ids_cossin)#(2*batch,diftcodelen)
+        dift_codes_origin = torch_render.rotate_vector_along_axis(self.setup,-rotate_theta,dift_codes_origin)
         dift_codes = dift_codes_origin.reshape(2,self.batch_size,self.dift_code_len)
+        
 
         ############################################################################################################################
         ## step 3 compute loss
@@ -120,7 +124,7 @@ class DIFT_TRAIN_NET(nn.Module):
 
         normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
 
-        l2_loss =   normal_loss
+        l2_loss = normal_loss
 
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)

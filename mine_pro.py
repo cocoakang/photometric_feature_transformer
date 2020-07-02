@@ -72,6 +72,7 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
         n_dot_wo = end_points["n_dot_view_dir"]#(batch*2,1)
         normals_localview = end_points["n"]#(batch*2,3)
         normals_localview = torch.reshape(normals_localview,(batch_size,2,3)).permute(1,0,2).reshape(2*batch_size,3)
+        normals_globalview = torch.unsqueeze(normal,dim=0).repeat(2,1,1).reshape(2*batch_size,3)#(2*batch,3)
         visibility = torch.where(~(n_dot_wo.reshape(batch_size,2) > 0.0).all(dim=1))[0]
         # print(visibility)
         if len(visibility) > 0:
@@ -96,12 +97,16 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
         view_ids_cossin = view_ids_cossin.reshape(batch_size,2,2)
         view_ids_cossin = view_ids_cossin.permute(1,0,2)
 
+        rotate_angles = rotate_angles.reshape(batch_size,2,1).permute(1,0,2).reshape(2*batch_size,1)
+
         training_data_map = {
             "input_lumi":rendered_result,
             "param":param,
             "position":position,
-            "normal":normals_localview,
-            "view_ids_cossin":view_ids_cossin
+            "normal_local":normals_localview,
+            "normal":normals_globalview,
+            "view_ids_cossin":view_ids_cossin,
+            "rotate_theta":rotate_angles
         }
         # print("[MINE PRO PROCESS] putting data...{}".format(self.mine.name))
         output_queue.put(training_data_map)
