@@ -48,7 +48,7 @@ class DIFT_TRAIN_NET(nn.Module):
         self.dift_net = DIFT_NET(args)
         # self.material_net = SIGA20_NET_material(args)
         # self.decompose_net = SIGA20_NET_m_decompose(args)
-        # self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
+        self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
         # self.l2_loss_fn_none = torch.nn.MSELoss(reduction='none')
         self.regularizer = Regularization(self.dift_net,1.0)#self.reg_alpha)
 
@@ -68,6 +68,8 @@ class DIFT_TRAIN_NET(nn.Module):
         # stamp_name=[]
         input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,3)
         view_ids_cossin = batch_data["view_ids_cossin"].to(self.training_device)
+        global_positions = batch_data["position"].to(self.training_device)#(batchsize,3)
+        normal_label = batch_data["normal"].to(self.training_device)#(2*batchsize,3)
 
         ############################################################################################################################
         ## step 2 draw nn net
@@ -77,8 +79,8 @@ class DIFT_TRAIN_NET(nn.Module):
         measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,3)
         view_ids_cossin = view_ids_cossin.reshape(2*self.batch_size,2)
         #concatenate measurements
-        dift_codes = self.dift_net(measurements,view_ids_cossin)#(2*batch,diftcodelen)
-        dift_codes = dift_codes.reshape(2,self.batch_size,self.dift_code_len)
+        dift_codes_origin = self.dift_net(measurements,view_ids_cossin)#(2*batch,diftcodelen)
+        dift_codes = dift_codes_origin.reshape(2,self.batch_size,self.dift_code_len)
 
         ############################################################################################################################
         ## step 3 compute loss
@@ -96,7 +98,10 @@ class DIFT_TRAIN_NET(nn.Module):
             term_map = {
                 "input_lumis":input_lumis.cpu(),
                 "distance_matrix":D.cpu(),
-                "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device)
+                "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
+                "global_positions":global_positions.cpu(),
+                "normal_label":normal_label.cpu(),
+                "normal_nn":dift_codes_origin.cpu()
             }
             term_map = self.visualize_quality_terms(term_map)
             return term_map
@@ -113,17 +118,9 @@ class DIFT_TRAIN_NET(nn.Module):
         
         E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
-        # if torch.isnan(E1).any() or global_step == 14525:
-        #     print("=====================nan occured!")
-        #     print("global step:",global_step)
-        #     print("D_mat_mul\n",D_mat_mul)
-        #     print("D\n",D)
-        #     print("D_ii\n",D_ii)
-        #     print("s_ii_c\n",s_ii_c)
-        #     print("s_ii_r\n",s_ii_r)
-        #     # exit()
+        normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
 
-        l2_loss =   E1
+        l2_loss =   normal_loss
 
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)
@@ -132,6 +129,7 @@ class DIFT_TRAIN_NET(nn.Module):
 
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
+            "loss_normal":normal_loss.item(),
             "total":total_loss.item(),
             "loss_reg_tamer":reg_loss.item()
         }
@@ -144,11 +142,22 @@ class DIFT_TRAIN_NET(nn.Module):
         #################################
         input_lumis = quality_map["input_lumis"].numpy()#(2*batchsize,lightnum,channel) torch tensor
         distance_matrix = quality_map["distance_matrix"].numpy()
+        global_positions = quality_map["global_positions"].numpy()#(batchsize,3)
+        normal_label = quality_map["normal_label"].numpy()#(2*batchsize,3)
+        normal_nn = quality_map["normal_nn"].numpy()#(2*batchsize,3)
         
         img_stack_list = []
         input_lumis = np.transpose(input_lumis.reshape(2,self.batch_size,input_lumis.shape[1],input_lumis.shape[2]),[1,0,2,3])
         input_lumis = np.reshape(input_lumis,[self.batch_size*2,input_lumis.shape[2],input_lumis.shape[3]])
         img_input = torch_render.visualize_lumi(input_lumis,self.setup)#(batchsize*2,imgheight,imgwidth,channel)
+
+        normal_label = np.reshape(np.transpose(np.reshape(normal_label,(2,self.batch_size,3)),[1,0,2]),(self.batch_size*2,3))
+        global_positions = np.reshape(np.repeat(np.expand_dims(global_positions,axis=1),2,axis=1),(self.batch_size*2,3))
+        img_input = torch_render.draw_vector_on_lumi(img_input,normal_label,global_positions,self.setup,True,(0.0,1.0,0.0))
+        normal_nn = np.transpose(normal_nn.reshape(2,self.batch_size,3),[1,0,2])
+        normal_nn = np.reshape(normal_nn,(self.batch_size*2,3))
+        img_input = torch_render.draw_vector_on_lumi(img_input,normal_nn,global_positions,self.setup,True,(1.0,0.0,0.0))
+
         img_input = torch.from_numpy(img_input).reshape(self.batch_size,2,img_input.shape[1],img_input.shape[2],img_input.shape[3])
 
         images_list = []

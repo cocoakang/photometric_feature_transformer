@@ -70,6 +70,8 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
         )
         
         n_dot_wo = end_points["n_dot_view_dir"]#(batch*2,1)
+        normals_localview = end_points["n"]#(batch*2,3)
+        normals_localview = torch.reshape(normals_localview,(batch_size,2,3)).permute(1,0,2).reshape(2*batch_size,3)
         visibility = torch.where(~(n_dot_wo.reshape(batch_size,2) > 0.0).all(dim=1))[0]
         # print(visibility)
         if len(visibility) > 0:
@@ -98,6 +100,7 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
             "input_lumi":rendered_result,
             "param":param,
             "position":position,
+            "normal":normals_localview,
             "view_ids_cossin":view_ids_cossin
         }
         # print("[MINE PRO PROCESS] putting data...{}".format(self.mine.name))
