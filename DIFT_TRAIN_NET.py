@@ -67,7 +67,7 @@ class DIFT_TRAIN_NET(nn.Module):
         # end_time = [start]
         # stamp_name=[]
         input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,3)
-        view_ids_cossin = batch_data["view_ids_cossin"].to(self.training_device)
+        view_ids_cossin = batch_data["view_ids_cossin"].to(self.training_device)#(2*batchsize,2)
         global_positions = batch_data["position"].to(self.training_device)#(batchsize,3)
         normal_label = batch_data["normal"].to(self.training_device)#(2*batchsize,3)
         normal_label_local = batch_data["normal_local"].to(self.training_device)#(2*batchsize,3)
@@ -79,13 +79,17 @@ class DIFT_TRAIN_NET(nn.Module):
         #1 first we project every lumitexel to measurements
         input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),3)
         measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,3)
-        view_ids_cossin = view_ids_cossin.reshape(2*self.batch_size,2)
         #concatenate measurements
-        dift_codes_origin = self.dift_net(measurements,view_ids_cossin)#(2*batch,diftcodelen)
-        dift_codes_origin = torch_render.rotate_vector_along_axis(self.setup,-rotate_theta,dift_codes_origin)
+
+        view_mat_model = torch_render.rotation_axis(-rotate_theta,self.setup.get_rot_axis_torch(measurements.device))#[2*batch,4,4]
+        view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
+        view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
+        view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
+
+        dift_codes_origin = self.dift_net(measurements,view_ids_cossin,view_mat_for_normal_t)#(2*batch,diftcodelen)
+        # dift_codes_origin = torch_render.rotate_vector_along_axis(self.setup,-rotate_theta,dift_codes_origin)
         dift_codes = dift_codes_origin.reshape(2,self.batch_size,self.dift_code_len)
         
-
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################

@@ -88,16 +88,13 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
         # print("position {}:".format(name),position[-3:])
         # exit()
 
+        rotate_angles = rotate_angles.reshape(batch_size,2,1).permute(1,0,2).reshape(2*batch_size,1)
         view_ids_cossin = torch.cat(
             [
                 torch.sin(rotate_angles),
                 torch.cos(rotate_angles)
             ],dim=1
         )
-        view_ids_cossin = view_ids_cossin.reshape(batch_size,2,2)
-        view_ids_cossin = view_ids_cossin.permute(1,0,2)
-
-        rotate_angles = rotate_angles.reshape(batch_size,2,1).permute(1,0,2).reshape(2*batch_size,1)
 
         training_data_map = {
             "input_lumi":rendered_result,

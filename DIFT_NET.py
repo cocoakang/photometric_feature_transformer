@@ -17,6 +17,7 @@ class DIFT_NET(nn.Module):
         input_size = self.measurements_length*3+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
+        self.dift_part2 = self.dift_part_f2(3+16)
         self.view_part = self.view_part_f(2)
     
     def view_part_f(self,input_size,name_prefix = "VIEW_"):
@@ -199,11 +200,51 @@ class DIFT_NET(nn.Module):
         layer_stack = nn.Sequential(layer_stack)
 
         return layer_stack
+    
+    def dift_part_f2(self,input_size,name_prefix = "DIFT2_"):
+        layer_stack = OrderedDict()
+        
+        layer_count = 0
 
-    def forward(self,batch_data,view_ids_cossin):
+        output_size=256
+        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
+        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(output_size)
+        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
+        layer_count+=1
+        input_size = output_size
+
+        output_size=256
+        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
+        # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
+        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
+        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
+        layer_count+=1
+        input_size = output_size
+
+        output_size=256
+        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
+        # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
+        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
+        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
+        layer_count+=1
+        input_size = output_size
+
+        output_size=self.dift_code_len
+        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
+        # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
+        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
+        layer_count+=1
+        input_size = output_size
+
+        layer_stack = nn.Sequential(layer_stack)
+
+        return layer_stack
+
+    def forward(self,batch_data,view_ids_cossin,view_mat_for_normal_t):
         '''
         batch_data=(batch_size,sample_view_num,m_len,1)
         view_ids_cossin = (batch_size,2)
+        view_mat_for_normal_t = (batch_size,16)
         '''
         batch_size = batch_data.size()[0]
         device = batch_data.device
@@ -215,4 +256,13 @@ class DIFT_NET(nn.Module):
 
         dift_codes = self.dift_part(x_n)
         dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+
+        dift_codes = torch.cat([dift_codes,view_mat_for_normal_t],dim=1)
+        dift_codes = self.dift_part2(dift_codes)
+        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+
+        # view_mat_for_normal_t = view_mat_for_normal_t.reshape(batch_size,4,4)
+        # pn = torch.unsqueeze(torch.cat([dift_codes,torch.ones(batch_size,1,dtype=dift_codes.dtype,device=device)],dim=1),1)#[batch,1,4]
+        # dift_codes = torch.squeeze(torch.matmul(pn,view_mat_for_normal_t),1)[:,:3]
+
         return dift_codes
