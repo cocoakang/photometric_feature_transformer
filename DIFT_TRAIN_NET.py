@@ -87,7 +87,6 @@ class DIFT_TRAIN_NET(nn.Module):
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
         dift_codes_origin = self.dift_net(measurements,view_ids_cossin,view_mat_for_normal_t)#(2*batch,diftcodelen)
-        # dift_codes_origin = torch_render.rotate_vector_along_axis(self.setup,-rotate_theta,dift_codes_origin)
         dift_codes = dift_codes_origin.reshape(2,self.batch_size,self.dift_code_len)
         
         ############################################################################################################################
@@ -109,7 +108,7 @@ class DIFT_TRAIN_NET(nn.Module):
                 "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
                 "global_positions":global_positions.cpu(),
                 "normal_label":normal_label.cpu(),
-                "normal_nn":dift_codes_origin.cpu()
+                "normal_nn":normal_label.cpu()
             }
             term_map = self.visualize_quality_terms(term_map)
             return term_map
@@ -126,9 +125,9 @@ class DIFT_TRAIN_NET(nn.Module):
         
         E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
-        normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
+        # normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
 
-        l2_loss = normal_loss
+        l2_loss = E1
 
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)
@@ -137,7 +136,7 @@ class DIFT_TRAIN_NET(nn.Module):
 
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
-            "loss_normal":normal_loss.item(),
+            "loss_normal":0.0,
             "total":total_loss.item(),
             "loss_reg_tamer":reg_loss.item()
         }

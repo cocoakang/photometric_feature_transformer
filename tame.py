@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=4)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
-    parser.add_argument("--dift_code_len",type=int,default=3)
+    parser.add_argument("--dift_code_len",type=int,default=64)
     parser.add_argument("--view_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
@@ -126,10 +126,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="globalnormal_semirotcode")
-        # os.makedirs("../log_no_where/",exist_ok=True)
-        # os.system("rm -r ../log_no_where/*")
-        # writer = SummaryWriter(log_dir="../log_no_where/")
+        # writer = SummaryWriter(comment="globalnormal_semirotcode_16")
+        os.makedirs("../log_no_where/",exist_ok=True)
+        os.system("rm -r ../log_no_where/*")
+        writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
