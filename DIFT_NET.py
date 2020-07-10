@@ -255,10 +255,10 @@ class DIFT_NET(nn.Module):
         x_n = torch.cat([x_n,view_codes],dim=1)
 
         dift_codes = self.dift_part(x_n)
-        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+        # dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         dift_codes = torch.cat([dift_codes,view_mat_for_normal_t],dim=1)
         dift_codes = self.dift_part2(dift_codes)
-        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+        # dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         return dift_codes

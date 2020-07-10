@@ -72,6 +72,7 @@ class DIFT_TRAIN_NET(nn.Module):
         normal_label = batch_data["normal"].to(self.training_device)#(2*batchsize,3)
         normal_label_local = batch_data["normal_local"].to(self.training_device)#(2*batchsize,3)
         rotate_theta = batch_data["rotate_theta"].to(self.training_device)#(2*batchsize,1)
+        position_2 = batch_data["position_2"].to(self.training_device)#(2*batchsize,3)
 
         ############################################################################################################################
         ## step 2 draw nn net
@@ -82,11 +83,15 @@ class DIFT_TRAIN_NET(nn.Module):
         #concatenate measurements
 
         view_mat_model = torch_render.rotation_axis(-rotate_theta,self.setup.get_rot_axis_torch(measurements.device))#[2*batch,4,4]
-        view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
-        view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
-        view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
+        view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
+        view_mat_model_t = view_mat_model_t.reshape(2*self.batch_size,16)
+        # view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
+        # view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
+        # view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
-        dift_codes_origin = self.dift_net(measurements,view_ids_cossin,view_mat_for_normal_t)#(2*batch,diftcodelen)
+        dift_codes_origin = self.dift_net(measurements,view_ids_cossin,torch.zeros_like(view_mat_model_t))#(2*batch,diftcodelen)
+        # dift_codes_origin = dift_codes_origin*0.0+position_2
+        dift_codes_origin = torch_render.rotate_point_along_axis(self.setup,-rotate_theta,dift_codes_origin)
         dift_codes = dift_codes_origin.reshape(2,self.batch_size,self.dift_code_len)
         
         ############################################################################################################################
@@ -97,8 +102,12 @@ class DIFT_TRAIN_NET(nn.Module):
         
         #E1
         eps = 1e-6
-        D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
-        D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]
+        Y1 = torch.unsqueeze(Y1,dim=0)
+        Y2 = torch.unsqueeze(Y2,dim=1)
+        D_sub = Y1-Y2#(batch,batch,diftcode_len)
+        D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
+        # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
+        # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]
         
         if call_type == "check_quality":
             #fech every lumitexel from gpus
@@ -126,8 +135,9 @@ class DIFT_TRAIN_NET(nn.Module):
         E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
         # normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
+        position_loss = self.l2_loss_fn(dift_codes_origin,position_2)
 
-        l2_loss = E1
+        l2_loss = position_loss
 
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)

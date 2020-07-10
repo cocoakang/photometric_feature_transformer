@@ -47,11 +47,14 @@ class DIFT_NET_inuse(nn.Module):
             )
         
         view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(batch_data.device))#[2*batch,4,4]
+        view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
+        view_mat_model_t = view_mat_model_t.reshape(batch_size,16)
         view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
         view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(batch_size,16)
 
-        infered_dift_codes = self.dift_net(batch_data,cossin,view_mat_for_normal_t)#(batch,3)
+        infered_dift_codes = self.dift_net(batch_data,cossin,view_mat_model_t)#(batch,3)
         # dift_codes_origin = torch_render.rotate_vector_along_axis(self.setup,-sampled_rotate_angles,infered_dift_codes)
+        # infered_dift_codes = torch_render.rotate_point_along_axis(self.setup,-sampled_rotate_angles,infered_dift_codes)
 
         return infered_dift_codes
