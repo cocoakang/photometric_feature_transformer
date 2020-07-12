@@ -56,7 +56,7 @@ if __name__ == "__main__":
         tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
         tmp_img[idxes[:,1],idxes[:,0]] = feature_origin
 
-        cv2.imwrite(feature_img_folder+"pos_{}.exr".format(which_view),tmp_img)
+        cv2.imwrite(feature_img_folder+"pos_{}.exr".format(which_view),tmp_img[:,:,::-1])
     
         ######save feature bin for colmap
         # tmp_img = np.zeros([args.imgheight,args.imgwidth,test_dim],np.float32)
