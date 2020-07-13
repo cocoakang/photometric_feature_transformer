@@ -135,9 +135,9 @@ class DIFT_TRAIN_NET(nn.Module):
         E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
         # normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
-        position_loss = self.l2_loss_fn(dift_codes_origin,position_2)
+        position_loss = self.l2_loss_fn(position_2,position_2)
 
-        l2_loss = position_loss
+        l2_loss = E1#position_loss
 
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)
