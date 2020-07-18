@@ -126,7 +126,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_{}_norm_lambda0".format(args.dift_code_len))
+        writer = SummaryWriter(comment="learn_l2_{}_bestvertical".format(args.dift_code_len))
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")
