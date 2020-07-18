@@ -72,6 +72,7 @@ if __name__ == "__main__":
         measurments = measurments * args.scalar
 
         pf_save = open(cur_save_root+"feature.bin".format(which_view),"wb")
+        pf_save_normal = open(cur_save_root+"normal.bin".format(which_view),"wb")
 
         ptr = 0
         while True:
@@ -83,12 +84,16 @@ if __name__ == "__main__":
             sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1).to("cuda:0")
             sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]
             with torch.no_grad():
-                dift_codes = nn_model(tmp_measurements,sampled_rotate_angles)
+                dift_codes,normal_nn = nn_model(tmp_measurements,sampled_rotate_angles)
             
             dift_codes = dift_codes.cpu().numpy()
             dift_codes.astype(np.float32).tofile(pf_save)
 
+            normal_nn = normal_nn.cpu().numpy()
+            normal_nn.astype(np.float32).tofile(pf_save_normal)
+
             ptr+=cur_batch_size
         
         pf_save.close()
+        pf_save_normal.close()
         

@@ -44,6 +44,8 @@ if __name__ == "__main__":
     ######step 2 pca feature###################
     print("PCA to 3...")
     pca = PCA(n_components=3)
+    # features_pca = pca.fit_transform(subfeatures[:,args.dift_code_len//2:])
+    # features_pca = pca.fit_transform(subfeatures[:,:args.dift_code_len//2])
     features_pca = pca.fit_transform(subfeatures)
     feautre_min = np.min(features_pca,axis=0,keepdims=True)
     feautre_max = np.max(features_pca,axis=0,keepdims=True)
@@ -68,13 +70,21 @@ if __name__ == "__main__":
             print("pixel num:{}".format(pixel_num))
 
         feature_origin = np.fromfile(log_folder+"{}/feature.bin".format(which_view),np.float32).reshape([-1,args.dift_code_len])
-
+        normal_origin = np.fromfile(log_folder+"{}/normal.bin".format(which_view),np.float32).reshape([-1,3])
+        # feature_origin = feature_origin[:,args.dift_code_len//2:]
+        # feature_origin = feature_origin[:,:args.dift_code_len//2]
+        feature_origin = feature_origin
         #######visualize feature images
         tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
         tmp_features_3 = pca.transform(feature_origin)
-        tmp_img[idxes[:,1],idxes[:,0]] = (tmp_features_3-feautre_min)/(feautre_max-feautre_min)
+        tmp_img[idxes[:,1],idxes[:,0]] = ((tmp_features_3-feautre_min)/(feautre_max-feautre_min))
 
         cv2.imwrite(feature_img_folder+"pd_predicted_{}_0.png".format(which_view),tmp_img*255.0)
+        #######visualize feature images
+        tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
+        tmp_img[idxes[:,1],idxes[:,0]] = normal_origin*0.5+0.5
+
+        cv2.imwrite(feature_img_folder+"normal_{}_0.png".format(which_view),tmp_img*255.0)
     
         ######save feature bin for colmap
         # tmp_img = np.zeros([args.imgheight,args.imgwidth,test_dim],np.float32)

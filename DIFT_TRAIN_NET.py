@@ -89,7 +89,7 @@ class DIFT_TRAIN_NET(nn.Module):
         view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
-        dift_codes_origin = self.dift_net(measurements,view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
+        dift_codes_origin,normal_global_nn = self.dift_net(measurements,view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
         # dift_codes_origin = dift_codes_origin*0.0+position_2
         # dift_codes_origin = torch_render.rotate_point_along_axis(self.setup,-rotate_theta,dift_codes_origin)
         dift_codes = dift_codes_origin.reshape(2,self.batch_size,self.dift_code_len)
@@ -134,19 +134,19 @@ class DIFT_TRAIN_NET(nn.Module):
         
         E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
-        # normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
-        position_loss = self.l2_loss_fn(position_2,position_2)
+        normal_loss = self.l2_loss_fn(normal_global_nn,normal_label)
+        # position_loss = self.l2_loss_fn(position_2,position_2)
 
         l2_loss = E1#position_loss
 
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)
 
-        total_loss = l2_loss#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
+        total_loss = l2_loss#+normal_loss*0.0#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
 
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
-            "loss_normal":0.0,
+            "loss_normal":normal_loss.item(),
             "total":total_loss.item(),
             "loss_reg_tamer":reg_loss.item()
         }
