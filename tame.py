@@ -56,12 +56,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=3)
+    parser.add_argument("--rendering_gpu",type=int,default=3)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=4)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
-    parser.add_argument("--dift_code_len",type=int,default=8)
+    parser.add_argument("--dift_code_len",type=int,default=4)
     parser.add_argument("--view_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_{}_bestvertical".format(args.dift_code_len))
+        writer = SummaryWriter(comment="learn_l2_{}_bestvertical_nocat_notviewcode".format(args.dift_code_len))
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")

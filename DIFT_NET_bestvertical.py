@@ -14,12 +14,12 @@ class DIFT_NET(nn.Module):
         self.view_code_len = args["view_code_len"]
         self.keep_prob = 0.9
         #############construct model
-        input_size = self.measurements_length*3#+self.view_code_len
+        input_size = self.measurements_length*3+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
-        self.dift_part2 = self.dift_part_f2(128+16+16)
-        # self.dift_part3 = self.dift_part_f2(128+16)
-        # self.view_part = self.view_part_f(2)
+        self.dift_part2 = self.dift_part_f2(128+16)
+        self.dift_part3 = self.dift_part_f2(128+16)
+        self.view_part = self.view_part_f(2)
     
     def view_part_f(self,input_size,name_prefix = "VIEW_"):
         layer_stack = OrderedDict()
@@ -230,8 +230,8 @@ class DIFT_NET(nn.Module):
         layer_count+=1
         input_size = output_size
 
-        # assert self.dift_code_len % 2 == 0
-        output_size=self.dift_code_len#//2
+        assert self.dift_code_len % 2 == 0
+        output_size=self.dift_code_len//2
         # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
         # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
         layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
@@ -252,20 +252,20 @@ class DIFT_NET(nn.Module):
         batch_size = batch_data.size()[0]
         device = batch_data.device
 
-        # view_codes = self.view_part(torch.zeros_like(view_ids_cossin))
+        view_codes = self.view_part(view_ids_cossin)
 
         x_n = batch_data.reshape(batch_size,-1)
-        # x_n = torch.cat([x_n,view_codes],dim=1)
+        x_n = torch.cat([x_n,view_codes],dim=1)
 
         dift_codes = self.dift_part(x_n)
         dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
-        # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
-        dift_codes_normal = torch.cat([dift_codes,view_mat_model_t,view_mat_for_normal_t],dim=1)
-        # dift_codes_pos = nn.functional.sigmoid(self.dift_part2(dift_codes_pos))
-        dift_codes_normal = self.dift_part2(dift_codes_normal)
+        dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
+        dift_codes_normal = torch.cat([dift_codes,view_mat_for_normal_t],dim=1)
+        dift_codes_pos = nn.functional.sigmoid(self.dift_part2(dift_codes_pos))
+        dift_codes_normal = self.dift_part3(dift_codes_normal)
         dift_codes_normal = torch.nn.functional.normalize(dift_codes_normal,dim=1)
 
-        dift_codes = dift_codes_normal#torch.cat([dift_codes_pos,dift_codes_normal],dim=1)
+        dift_codes = torch.cat([dift_codes_pos,dift_codes_normal],dim=1)
 
         return dift_codes,torch.zeros(batch_size,3,dtype=torch.float32)
