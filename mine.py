@@ -119,13 +119,13 @@ class Mine:
             tmp_params = self.buffer_params[self.current_ptr:self.current_ptr+self.batch_size]
         self.current_ptr+=self.batch_size
 
-        tmp_params[:,6:8] = 0.05#self.__rejection_sampling_axay(test_tangent_flag)
+        tmp_params[:,6:8] = self.__rejection_sampling_axay(test_tangent_flag)
         # tmp_params[:,7] = tmp_params[:,6]
         new_positions = self.generate_batch_positions(self.batch_size)
         tmp_params = np.concatenate([
             tmp_params[:,3:3+5],
-            np.ones_like(self.sample_color(param_bounds["pd"][0],param_bounds["pd"][1]))*0.5,
-            np.ones_like(self.sample_color(param_bounds["ps"][0],param_bounds["ps"][1]))*3.0
+            self.sample_color(param_bounds["pd"][0],param_bounds["pd"][1]),#np.ones_like(self.sample_color(param_bounds["pd"][0],param_bounds["pd"][1]))*0.5,
+            self.sample_color(param_bounds["ps"][0],param_bounds["ps"][1])#np.ones_like(self.sample_color(param_bounds["ps"][0],param_bounds["ps"][1]))*3.0
         ],axis=-1)
 
         input_params = torch.from_numpy(tmp_params).to(self.rendering_device)

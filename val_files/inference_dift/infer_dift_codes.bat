@@ -1,5 +1,5 @@
-SET DATA_ROOT="D:/CVPR21_freshmeat/7_18_bestvertical_nocat_4_notviewcode/sphere/"
-SET MODEL_ROOT="D:/CVPR21_models/7_18_bestvertical_nocat_4_notviewcode/models/"
+SET DATA_ROOT="D:/CVPR21_freshmeat/7_21_bngdnorm/sphere/"
+SET MODEL_ROOT="D:/CVPR21_models/7_21_bngdnorm/models/"
 SET MODEL_FILE_NAME="model_state_30000.pkl"
 
 SET SAMPLE_VIEW_NUM=24
