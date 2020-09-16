@@ -14,7 +14,7 @@ class DIFT_linear_projection(nn.Module):
         self.device_cpu = torch.device("cpu")
         self.setup_input = args["setup_input"]
 
-        tmp_kernel = torch.empty(self.measurements_length,self.lumitexel_length,3)
+        tmp_kernel = torch.empty(self.measurements_length,self.lumitexel_length)
         nn.init.xavier_uniform_(tmp_kernel)
         # tmp_kernel_np = tmp_kernel.cpu().numpy()
         # tmp_kernel_np.astype(np.float32).tofile("/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/BRDF_feature_extract/logs/sig20_init/details/params_init/0_tc.bin")
@@ -27,8 +27,8 @@ class DIFT_linear_projection(nn.Module):
             data = tmp_kernel,
             requires_grad=True
         )#(m_len,lumi_len,3)
-        self.rgb_tensor = self.setup_input.get_color_tensor(self.kernel.device).float()#(3,3,3) (light,cam,brdf)
-        self.rgb_tensor = self.rgb_tensor.permute(0,2,1).reshape(9,3)#(3,3,3) (light,brdf,cam)
+        # self.rgb_tensor = self.setup_input.get_color_tensor(self.kernel.device).float()#(3,3,3) (light,cam,brdf)
+        # self.rgb_tensor = self.rgb_tensor.permute(0,2,1).reshape(9,3)#(3,3,3) (light,brdf,cam)
     
     # def gaussian_random_matrix(self,n_components, n_features, random_state=None):
     #     components = np.random.normal(loc=0.0,
@@ -75,18 +75,10 @@ class DIFT_linear_projection(nn.Module):
         device = lumitexels.device
 
         measurement_list = []
-
-        rgb_tensor = self.rgb_tensor.to(device,copy=True)#(9,3)
         
         kernel = self.get_lighting_patterns(device)#[measurementnum,lightnum]
-        tmp_kernel = torch.unsqueeze(kernel,dim=0).repeat(batch_size,1,1,1)#[batchsize,measurementnum,lightnum,3]
-        tmp_kernel = torch.unsqueeze(tmp_kernel,dim=4)#[batchsize,measurementnum,lightnum,3,1]
-
-        tmp_lumi = torch.unsqueeze(lumitexels,dim=1).repeat(1,self.measurements_length,1,1)#(batchsize,measurementnum,lightnum,3)
-        tmp_lumi = torch.unsqueeze(tmp_lumi,dim=3)#(batchsize,measurementnum,lightnum,1,3)
-
-        tmp_measurement = torch.sum(tmp_kernel*tmp_lumi,dim=2).reshape(batch_size*self.measurements_length,9)#(batchsize*measurementnum,9)
-        tmp_measurement = torch.matmul(tmp_measurement,rgb_tensor).reshape(batch_size,self.measurements_length,3)#(batchsize,measurementnum,3)
+        tmp_kernel = torch.unsqueeze(kernel,dim=0).repeat(batch_size,1,1)#[batchsize,measurementnum,lightnum]
+        tmp_measurement = torch.matmul(tmp_kernel,lumitexels)#[batch,measurement,1]
 
         if add_noise:
             tmp_noise = torch.randn_like(tmp_measurement)*self.noise_stddev+1.
@@ -94,4 +86,3 @@ class DIFT_linear_projection(nn.Module):
             return tmp_measurements_noised
         else:
             return tmp_measurement
-

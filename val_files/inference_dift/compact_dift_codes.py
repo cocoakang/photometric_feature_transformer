@@ -25,16 +25,16 @@ if __name__ == "__main__":
     for which_view in range(args.rotate_num):
         with open(log_folder+"{}/feature.bin".format(which_view)) as pf:
             pf.seek(0,2)
-            tmp_point_num = pf.tell()//4//args.dift_code_len
+            tmp_point_num = pf.tell()//4//args.dift_code_len//3
             point_num+= tmp_point_num
             print("view:{} pointnum:{}".format(which_view,tmp_point_num))
     print("total point num:",point_num)       
 
-    features = np.zeros([point_num,args.dift_code_len],np.float32)  
+    features = np.zeros([point_num,args.dift_code_len*3],np.float32)  
     ptr = 0
     for which_view in range(args.rotate_num):
         print("loading data view:{}".format(which_view))
-        tmp_features = np.fromfile(log_folder+"{}/feature.bin".format(which_view),np.float32).reshape([-1,args.dift_code_len])
+        tmp_features = np.fromfile(log_folder+"{}/feature.bin".format(which_view),np.float32).reshape([-1,args.dift_code_len*3])
         # tmp_features = tmp_features[np.random.randint(tmp_features.shape[0], size=tmp_features.shape[0]//2), :].copy()
         features[ptr:ptr+tmp_features.shape[0]] = tmp_features
         ptr+=tmp_features.shape[0]
@@ -69,8 +69,8 @@ if __name__ == "__main__":
             assert idxes.shape[0] == pixel_num
             print("pixel num:{}".format(pixel_num))
 
-        feature_origin = np.fromfile(log_folder+"{}/feature.bin".format(which_view),np.float32).reshape([-1,args.dift_code_len])
-        normal_origin = np.fromfile(log_folder+"{}/normal.bin".format(which_view),np.float32).reshape([-1,3])
+        feature_origin = np.fromfile(log_folder+"{}/feature.bin".format(which_view),np.float32).reshape([-1,args.dift_code_len*3])
+        # normal_origin = np.fromfile(log_folder+"{}/normal.bin".format(which_view),np.float32).reshape([-1,3])
         # feature_origin = feature_origin[:,args.dift_code_len//2:]
         # feature_origin = feature_origin[:,:args.dift_code_len//2]
         feature_origin = feature_origin
@@ -81,10 +81,10 @@ if __name__ == "__main__":
 
         cv2.imwrite(feature_img_folder+"pd_predicted_{}_0.png".format(which_view),tmp_img*255.0)
         #######visualize feature images
-        tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
-        tmp_img[idxes[:,1],idxes[:,0]] = normal_origin*0.5+0.5
+        # tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
+        # tmp_img[idxes[:,1],idxes[:,0]] = normal_origin*0.5+0.5
 
-        cv2.imwrite(feature_img_folder+"normal_{}_0.png".format(which_view),tmp_img*255.0)
+        # cv2.imwrite(feature_img_folder+"normal_{}_0.png".format(which_view),tmp_img*255.0)
     
         ######save feature bin for colmap
         # tmp_img = np.zeros([args.imgheight,args.imgwidth,test_dim],np.float32)

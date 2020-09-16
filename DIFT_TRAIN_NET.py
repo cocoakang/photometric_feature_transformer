@@ -78,12 +78,12 @@ class DIFT_TRAIN_NET(nn.Module):
         ## step 2 draw nn net
         ############################################################################################################################
         #1 first we project every lumitexel to measurements
-        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),3)
-        measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,3)
+        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
+        measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
         #concatenate measurements
 
         view_mat_model = torch_render.rotation_axis(-rotate_theta,self.setup.get_rot_axis_torch(measurements.device))#[2*batch,4,4]
-        view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
+        view_mat_model_t = torch.transpose(view_mat_model,1,2)#[2*batch,4,4]
         view_mat_model_t = view_mat_model_t.reshape(2*self.batch_size,16)
         view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
         view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]

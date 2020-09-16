@@ -69,6 +69,7 @@ if __name__ == "__main__":
         cur_save_root = save_root+"{}/".format(which_view)
         os.makedirs(cur_save_root,exist_ok=True)
         measurments = np.fromfile(cur_root+"cam00_data_{}_nocc_compacted.bin".format(args.measurement_len*2),np.float32).reshape([-1,args.measurement_len,3])
+        measurments = np.transpose(measurments,(0,2,1)).reshape(-1,args.measurement_len)
         measurments = measurments * args.scalar
 
         pf_save = open(cur_save_root+"feature.bin".format(which_view),"wb")
@@ -84,13 +85,13 @@ if __name__ == "__main__":
             sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1).to("cuda:0")
             sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]
             with torch.no_grad():
-                dift_codes,normal_nn = nn_model(tmp_measurements,sampled_rotate_angles)
+                dift_codes = nn_model(tmp_measurements,sampled_rotate_angles)
             
             dift_codes = dift_codes.cpu().numpy()
             dift_codes.astype(np.float32).tofile(pf_save)
 
-            normal_nn = normal_nn.cpu().numpy()
-            normal_nn.astype(np.float32).tofile(pf_save_normal)
+            # normal_nn = normal_nn.cpu().numpy()
+            # normal_nn.astype(np.float32).tofile(pf_save_normal)
 
             ptr+=cur_batch_size
         

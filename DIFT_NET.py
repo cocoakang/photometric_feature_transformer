@@ -14,7 +14,7 @@ class DIFT_NET(nn.Module):
         self.view_code_len = args["view_code_len"]
         self.keep_prob = 0.9
         #############construct model
-        input_size = self.measurements_length*3#+self.view_code_len
+        input_size = self.measurements_length*1#+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
         self.dift_part2 = self.dift_part_f2(128+16+16)
@@ -265,7 +265,7 @@ class DIFT_NET(nn.Module):
 
         # view_codes = self.view_part(torch.zeros_like(view_ids_cossin))
 
-        x_n = batch_data.reshape(batch_size,self.measurements_length,3)
+        x_n = batch_data.reshape(batch_size,self.measurements_length)
         x_n = torch.nn.functional.normalize(x_n,dim=1)
         x_n = x_n.reshape(batch_size,-1)
         # x_n = torch.cat([x_n,view_codes],dim=1)
@@ -281,4 +281,4 @@ class DIFT_NET(nn.Module):
 
         dift_codes = dift_codes_normal#torch.cat([dift_codes_pos,dift_codes_normal],dim=1)
 
-        return dift_codes,torch.zeros(batch_size,3,dtype=torch.float32)
+        return dift_codes#,torch.zeros(batch_size,3,dtype=torch.float32)
