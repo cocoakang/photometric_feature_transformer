@@ -212,6 +212,7 @@ if __name__ == "__main__":
             #check with real(real fake) data
             with torch.no_grad():
                 for a_checker in quality_checkers:
+                    training_net.eval()
                     a_checker.check_quality(training_net,writer,global_step)
 
         ## 3 save model

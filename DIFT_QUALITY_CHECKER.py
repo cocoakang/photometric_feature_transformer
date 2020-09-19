@@ -35,7 +35,7 @@ class DIFT_QUALITY_CHECKER:
         self.batch_size = batch_size
         self.test_device = test_device
         self.rotate_num = test_view_num
-        self.log_dir = log_dir+self.checker_name+"/"
+        self.log_dir = log_dir+"/"+self.checker_name+"/"
         os.makedirs(self.log_dir,exist_ok=True)
 
         self.sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=training_configs["sample_view_num"],endpoint=False)
@@ -175,7 +175,8 @@ class DIFT_QUALITY_CHECKER:
                     tmp_pos_tc,
                     sampled_rotate_angles,
                     "test_view_{}".format(which_view),
-                    global_custom_frame=tmp_global_frame
+                    global_custom_frame=tmp_global_frame,
+                    use_custom_frame="ntb"
                 )#(cur_batch_size,lightnum,1)
                 rendered_lumi = rendered_lumi*self.RENDER_SCALAR#(cur_batch_size,lightnum,1)
                 

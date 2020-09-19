@@ -14,7 +14,6 @@ if __name__ == "__main__":
     parser.add_argument("dift_code_len",type=int)
     parser.add_argument("colmap_code_len",type=int)
 
-    parser.add_argument("--batch_size",type=int,default=5000)
     parser.add_argument("--imgheight",type=int,default=3000)
     parser.add_argument("--imgwidth",type=int,default=4096)
     parser.add_argument("--test_on_the_fly",action="store_true")
@@ -45,6 +44,8 @@ if __name__ == "__main__":
         features[ptr:ptr+tmp_features.shape[0]] = tmp_features
         ptr+=tmp_features.shape[0]
     
+    assert ptr == point_num,"ptr:{} pointnum:{}".format(ptr,point_num)
+
     subfeatures = features[np.random.randint(features.shape[0], size=features.shape[0]), :].copy()
     # subfeatures = features[0:ptr]
     ######step 2 pca feature###################
