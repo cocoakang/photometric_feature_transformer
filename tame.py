@@ -4,6 +4,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torchvision
 import torch.optim as optim
 from DIFT_TRAIN_NET import DIFT_TRAIN_NET
+from DIFT_QUALITY_CHECKER import DIFT_QUALITY_CHECKER
 import argparse
 import time
 import sys
@@ -14,6 +15,7 @@ TORCH_RENDER_PATH="../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
 from torch_render import Setup_Config
 import queue
+import math
 
 
 MAX_ITR = 5000000
@@ -56,8 +58,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=2)
-    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=4)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
@@ -90,6 +93,8 @@ if __name__ == "__main__":
     train_configs["setup_input"] = setup_input
     train_configs["dift_code_len"] = args.dift_code_len
     train_configs["view_code_len"] = args.view_code_len
+
+    train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     lambdas = {}
     lambdas["diff"] =1.0
@@ -126,7 +131,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_{}_bestvertical_gd_bn_norm_grey2".format(args.dift_code_len))
+        writer = SummaryWriter(comment="learn_l2_{}".format(args.dift_code_len))
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")
@@ -144,6 +149,24 @@ if __name__ == "__main__":
         pf.write("-----------------")
         for parameter in training_net.parameters():
             pf.write("{}\n".format(parameter.shape))
+    
+    ###quality checker
+    quality_checkers = []
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=1000,
+        test_view_num=2
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
+    
+
     start_step = 0
     ##########################################
     ### load models
@@ -185,6 +208,12 @@ if __name__ == "__main__":
                 training_net.eval()
                 quality_terms = training_net(val_data,call_type="check_quality",global_step=global_step)
             log_quality(writer,quality_terms,global_step)
+
+            #check with real(real fake) data
+            with torch.no_grad():
+                for a_checker in quality_checkers:
+                    a_checker.check_quality(training_net,writer,global_step)
+
         ## 3 save model
         if global_step % SAVE_MODEL_ITR == 0 and global_step != 0:
             training_state = {

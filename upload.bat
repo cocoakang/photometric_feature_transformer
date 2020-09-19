@@ -1,1 +1,1 @@
-scp *.py cocoa_kang@10.76.2.207:/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/
+scp -r val_files *.py cocoa_kang@10.76.2.207:/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/

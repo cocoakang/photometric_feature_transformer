@@ -130,7 +130,7 @@ class Mine_Pro():
         #loading setup configuration        ###
         #######################################
         
-        self.RENDER_SCALAR = 5*1e3/math.pi
+        self.RENDER_SCALAR = self.args["RENDER_SCALAR"]
 
         #######################################
         #loading projection kernels         ###
