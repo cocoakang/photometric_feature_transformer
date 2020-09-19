@@ -17,7 +17,7 @@ class DIFT_NET(nn.Module):
         input_size = self.measurements_length*1#+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
-        self.dift_part2 = self.dift_part_f2(128+16+16)
+        self.dift_part2 = self.dift_part_f2(32+16+16)
         # self.dift_part3 = self.dift_part_f2(128+16)
         # self.view_part = self.view_part_f(2)
     
@@ -194,7 +194,7 @@ class DIFT_NET(nn.Module):
         layer_count+=1
         input_size = output_size
 
-        output_size=128
+        output_size=64
         # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
         # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
         layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
@@ -202,7 +202,7 @@ class DIFT_NET(nn.Module):
         layer_count+=1
         input_size = output_size
 
-        output_size=128
+        output_size=32
         # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
         # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
         layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)

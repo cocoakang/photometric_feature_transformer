@@ -12,6 +12,7 @@ if __name__ == "__main__":
 
     parser.add_argument("rotate_num",type=int)
     parser.add_argument("dift_code_len",type=int)
+    parser.add_argument("colmap_code_len",type=int)
 
     parser.add_argument("--batch_size",type=int,default=5000)
     parser.add_argument("--imgheight",type=int,default=3000)
@@ -51,17 +52,17 @@ if __name__ == "__main__":
     feautre_max = np.max(features_pca,axis=0,keepdims=True)
     # features_pca = (features_pca - np.min(features_pca,axis=0,keepdims=True))/(np.max(features_pca,axis=0,keepdims=True)-np.min(features_pca,axis=0,keepdims=True))
     print("Done.")
-    # # print("PCA to {}".format(args.colmap_code_len))
-    # # test_dim = args.colmap_code_len
-    # # pca2 = PCA(n_components=test_dim)
-    # # features_pca2 = pca2.fit_transform(subfeatures)
-    # # print("Done.")
+    print("PCA to {}".format(args.colmap_code_len))
+    test_dim = args.colmap_code_len
+    pca2 = PCA(n_components=test_dim)
+    features_pca2 = pca2.fit_transform(subfeatures)
+    print("Done.")
     
     ######step 3 draw features#################
     feature_img_folder = args.root+"feature_maps/feature_images/images_0/"
     os.makedirs(feature_img_folder,exist_ok=True)
     ptr = 0
-    # feature_file_bin_head = np.array([args.imgwidth,args.imgheight,test_dim],np.int32)
+    feature_file_bin_head = np.array([args.imgwidth,args.imgheight,test_dim],np.int32)
     for which_view in range(args.rotate_num):
         with open(args.root+"{}/cam00_index_nocc.bin".format(which_view),"rb") as pf:
             pixel_num = np.fromfile(pf,np.int32,1)[0]
@@ -87,10 +88,10 @@ if __name__ == "__main__":
         # cv2.imwrite(feature_img_folder+"normal_{}_0.png".format(which_view),tmp_img*255.0)
     
         ######save feature bin for colmap
-        # tmp_img = np.zeros([args.imgheight,args.imgwidth,test_dim],np.float32)
-        # tmp_features = pca2.transform(feature_origin)
-        # tmp_img[idxes[:,1],idxes[:,0]] = tmp_features
+        tmp_img = np.zeros([args.imgheight,args.imgwidth,test_dim],np.float32)
+        tmp_features = pca2.transform(feature_origin)
+        tmp_img[idxes[:,1],idxes[:,0]] = tmp_features
         
-        # with open(current_folder+"pd_predicted_{}_{}.png.bin".format(which_view,which_cam),"wb") as p_feature_file_bin:
-        #     feature_file_bin_head.tofile(p_feature_file_bin)
-        #     tmp_img.astype(np.float32).tofile(p_feature_file_bin)
+        with open(feature_img_folder+"pd_predicted_{}_0.png.bin".format(which_view),"wb") as p_feature_file_bin:
+            feature_file_bin_head.tofile(p_feature_file_bin)
+            tmp_img.astype(np.float32).tofile(p_feature_file_bin)
