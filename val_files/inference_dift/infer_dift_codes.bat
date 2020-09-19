@@ -1,11 +1,11 @@
 @echo off
 
-SET DATA_ROOT="D:/CVPR21_freshmeat/9_17_grey2/9_17_old_4_best_vertical_grey2/"
-SET MODEL_ROOT="D:/CVPR21_models/9_17_old_4_best_vertical_grey2/models/"
+SET DATA_ROOT="D:/CVPR21_freshmeat/9_19_test_checker/sphere/"
+SET MODEL_ROOT="D:/CVPR21_models/9_19_test_checker/models/"
 SET MODEL_FILE_NAME="model_state_90000.pkl"
 
 SET SAMPLE_VIEW_NUM=24
-SET ROTATE_VIEW_NUM=24
+SET ROTATE_VIEW_NUM=1
 SET MEASUREMENT_LEN=4
 SET /A DIFT_CODE_LEN=4
 SET COLMAP_CODE_LEN=4
