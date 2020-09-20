@@ -18,7 +18,7 @@ param_bounds["angle"] = (0.0,2.0*math.pi)
 
 class Mine:
     def __init__(self,train_configs,name):
-        np.random.seed(666)
+        # np.random.seed(666)
         self.record_size = origin_param_dim*4
         self.batch_size = train_configs["batch_size"]
         self.buffer_size = train_configs["pre_load_buffer_size"]

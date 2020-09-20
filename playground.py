@@ -1,21 +1,42 @@
-import torch
-import math
 import numpy as np
-import matplotlib.pyplot as plt
+import random
+import threading
 
-root = "/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/BRDF_feature_extract/logs/sig20_init/details/params_init/"
+def run(name,seed=None,produce=True):
+    if seed is not None:
+        np.random.seed(seed)
+    if produce:
+        print("[THREAD] {} says:{}".format(name,np.random.randint(0,10)))
+    else:
+        print("[THREAD] {} sets seed".format(name))
 
-#############################
-name_base = "0"
-tf_data = np.fromfile(root+"{}.bin".format(name_base),np.float32)
-tc_data = np.fromfile(root+"{}_tc.bin".format(name_base),np.float32)
+class Mine_Pro():
+    def __init__(self,name,seed,produce):
+        self.name = name
+        self.seed = seed
+        self.produce = produce
+    
+    def start(self):
+        self.generator = threading.Thread(target=run, args=(
+            self.name,
+            self.seed,
+            self.produce
+        ))
+        self.generator.setDaemon(True)
+        self.generator.start()
 
-# tf_data = tf_data.reshape([3,24576,4])
-# tc_data = tc_data.reshape([4,24576,3])
 
-print(tf_data.max())
-print(tc_data.max())
-print(tf_data.min())
-print(tc_data.min())
-print(tf_data[:10])
-print(tc_data[:10])
+seed_main = 666
+seed_process_1 = 999
+seed_process_2 = 233
+
+run("seed_main",seed_main)
+run("seed_process_1",seed_process_1)
+run("seed_process_2",seed_process_2)
+# run("seed_main",seed_main,False)
+# print("np.random.randint(0,10):",np.random.randint(0,10))
+
+run("seed_process_2",seed_process_2,False)
+test_mine = Mine_Pro("seed_process_1",seed_process_1,False)
+test_mine.start()
+print("np.random.randint(0,10):",np.random.randint(0,10))

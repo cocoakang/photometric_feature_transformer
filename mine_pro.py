@@ -14,10 +14,10 @@ from multiview_renderer_mt import Multiview_Renderer
 from torch_render import Setup_Config
 from generate_training_data import compute_loss_weight
 
-def run(args,name,setup,RENDER_SCALAR,output_queue):
-    # np.random.seed(23333)
-    # torch.random.manual_seed(23333)
-    # random.seed(666)
+def run(args,name,setup,RENDER_SCALAR,output_queue,seed):
+    np.random.seed(seed)
+    # torch.random.manual_seed(seed+1)
+    # random.seed(seed+2)
     mine = Mine(args,name)
     print("build mine done.")
     #######################################
@@ -116,7 +116,7 @@ def run(args,name,setup,RENDER_SCALAR,output_queue):
 
 
 class Mine_Pro():
-    def __init__(self,args,name,output_queue,output_sph):
+    def __init__(self,args,name,output_queue,output_sph,seed):
         print("[MINE PRO {}] creating mine...".format(name))
         ##########
         ##parse arguments
@@ -125,6 +125,7 @@ class Mine_Pro():
         self.name = name
         self.output_queue = output_queue
         self.setup = self.args["setup_input"]
+        self.seed = seed
         
         #######################################
         #loading setup configuration        ###
@@ -144,7 +145,8 @@ class Mine_Pro():
             self.name,
             self.setup,
             self.RENDER_SCALAR,
-            self.output_queue
+            self.output_queue,
+            self.seed
         ))
         self.generator.setDaemon(True)
         self.generator.start()
