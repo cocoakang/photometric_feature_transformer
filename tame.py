@@ -20,7 +20,7 @@ import math
 
 MAX_ITR = 5000000
 VALIDATE_ITR = 5
-CHECK_QUALITY_ITR=300
+CHECK_QUALITY_ITR=1000
 SAVE_MODEL_ITR=10000
 LOG_MODEL_ITR=30000
 
@@ -52,10 +52,11 @@ def log_quality(writer,quality_terms,global_step):
     writer.add_image("{}".format(term_key),quality_terms[term_key], global_step=global_step, dataformats='CHW')
 
 if __name__ == "__main__":
-    torch.manual_seed(666)
-    torch.cuda.manual_seed_all(666)
-    random.seed(666)
-    np.random.seed(666)
+    start_seed = 84059
+    torch.manual_seed(start_seed)
+    torch.cuda.manual_seed_all(start_seed)
+    random.seed(start_seed)
+    np.random.seed(start_seed)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
@@ -113,9 +114,9 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,2333)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,55637)
     train_mine.start()
-    val_mine = Mine_Pro(train_configs,"val",val_queue,None,666999)
+    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992837)
     val_mine.start()
     
     ##########################################
@@ -132,10 +133,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        # writer = SummaryWriter(comment="learn_l2_{}".format(args.dift_code_len))
-        os.makedirs("../log_no_where/",exist_ok=True)
-        os.system("rm -r ../log_no_where/*")
-        writer = SummaryWriter(log_dir="../log_no_where/")
+        writer = SummaryWriter(comment="learn_l2_{}".format(args.dift_code_len))
+        # os.makedirs("../log_no_where/",exist_ok=True)
+        # os.system("rm -r ../log_no_where/*")
+        # writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
