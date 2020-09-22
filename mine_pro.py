@@ -3,7 +3,7 @@ import numpy as np
 import math
 import torch
 import random
-import threading
+from multiprocessing import Process
 from mine import Mine
 import time
 import sys
@@ -140,13 +140,13 @@ class Mine_Pro():
         print("[MINE PRO {}] creating mine pro done.".format(name))
     
     def start(self):
-        self.generator = threading.Thread(target=run, args=(
+        self.generator = Process(target=run, args=(
             self.args,
             self.name,
             self.setup,
             self.RENDER_SCALAR,
             self.output_queue,
             self.seed
-        ))
-        self.generator.setDaemon(True)
+        ),daemon=True)
+        # self.generator.setDaemon(True)
         self.generator.start()

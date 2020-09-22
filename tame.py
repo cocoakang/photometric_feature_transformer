@@ -14,13 +14,13 @@ import os
 TORCH_RENDER_PATH="../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
 from torch_render import Setup_Config
-import queue
+from multiprocessing import Queue
 import math
 
 
 MAX_ITR = 5000000
 VALIDATE_ITR = 5
-CHECK_QUALITY_ITR=100
+CHECK_QUALITY_ITR=300
 SAVE_MODEL_ITR=10000
 LOG_MODEL_ITR=30000
 
@@ -106,18 +106,18 @@ if __name__ == "__main__":
     train_configs["batch_size"] = 25
     train_configs["pre_load_buffer_size"] = 500000
 
-    
     ##########################################
     ### data loader
     ##########################################
     # train_Semaphore = Semaphore(100)
-    train_queue = queue.Queue(25)
+    train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
-    val_queue = queue.Queue(10)
+    val_queue = Queue(10)
     train_mine = Mine_Pro(train_configs,"train",train_queue,None,2333)
     train_mine.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,666999)
     val_mine.start()
+    
     ##########################################
     ### net and optimizer
     ##########################################
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         pf.write("-----------------")
         for parameter in training_net.parameters():
             pf.write("{}\n".format(parameter.shape))
-    
+
     ###quality checker
     quality_checkers = []
     checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
@@ -166,7 +166,6 @@ if __name__ == "__main__":
         test_view_num=2
     )
     quality_checkers.append(checker_uniform_mirror_ball)
-    
 
     start_step = 0
     ##########################################
