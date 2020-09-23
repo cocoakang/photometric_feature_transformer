@@ -52,21 +52,21 @@ def log_quality(writer,quality_terms,global_step):
     writer.add_image("{}".format(term_key),quality_terms[term_key], global_step=global_step, dataformats='CHW')
 
 if __name__ == "__main__":
-    start_seed = 84059
-    torch.manual_seed(start_seed)
-    torch.cuda.manual_seed_all(start_seed)
+    start_seed = 84057
+    torch.manual_seed(1827397)
+    torch.cuda.manual_seed_all(1827397)
     random.seed(start_seed)
     np.random.seed(start_seed)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=3)
-    parser.add_argument("--rendering_gpu",type=int,default=3)
-    parser.add_argument("--checker_gpu",type=int,default=3)
+    parser.add_argument("--training_gpu",type=int,default=2)
+    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--checker_gpu",type=int,default=2)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=4)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
-    parser.add_argument("--dift_code_len",type=int,default=4)
+    parser.add_argument("--dift_code_len",type=int,default=10)
     parser.add_argument("--view_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
@@ -114,9 +114,9 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,55637)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,55631)
     train_mine.start()
-    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992837)
+    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
     val_mine.start()
     
     ##########################################
