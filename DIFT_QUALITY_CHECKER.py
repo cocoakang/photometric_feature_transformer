@@ -21,7 +21,7 @@ class DIFT_QUALITY_CHECKER:
     The infered dift codes will be projected to visualizable lengths(3).
     '''
 
-    def __init__(self,training_configs,log_dir,metadata_root,checker_name,test_device,axay=None,diff_albedo=None,spec_albedo=None,batch_size=1000,test_view_num=1):
+    def __init__(self,training_configs,log_dir,metadata_root,checker_name,test_device,axay=None,diff_albedo=None,spec_albedo=None,batch_size=1000,test_view_num=1,test_in_grey=True):
         '''
         metadata_root: the folder contains exrs(pos.exr normal.exr (tangent.exr axay.exr pd.exr ps.exr maybe))
 
@@ -36,6 +36,7 @@ class DIFT_QUALITY_CHECKER:
         self.test_device = test_device
         self.rotate_num = test_view_num
         self.log_dir = log_dir+"/"+self.checker_name+"/"
+        self.test_in_grey = test_in_grey
         os.makedirs(self.log_dir,exist_ok=True)
 
         self.sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=training_configs["sample_view_num"],endpoint=False)
@@ -50,12 +51,12 @@ class DIFT_QUALITY_CHECKER:
         
         files = os.listdir(metadata_root)
         tangent_presented = False
-        if "tangent.exr" in files:
-            tangent_exr = cv2.imread(metadata_root+"tangent.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
+        if "tangent_fitted_global.exr" in files:
+            tangent_exr = cv2.imread(metadata_root+"tangent_fitted_global.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
             tangent_presented = True
 
         if axay is None:
-            axay_exr = cv2.imread(metadata_root+"axay.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
+            axay_exr = cv2.imread(metadata_root+"axay_fitted.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
             axay_exr = axay_exr[:,:,:2]#(height,width,2)
         else:
             axay_exr = np.ones_like(pos_exr)[:,:,::2]
@@ -63,18 +64,18 @@ class DIFT_QUALITY_CHECKER:
             axay_exr[:,:,1] = axay[1]
 
         if diff_albedo is None:
-            diff_exr = cv2.imread(metadata_root+"diffuse_albedo.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
+            diff_exr = cv2.imread(metadata_root+"pd_fitted.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
         else:
             diff_exr = np.ones_like(pos_exr)*diff_albedo
 
         if spec_albedo is None:
-            spec_exr = cv2.imread(metadata_root+"specular_albedo.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
+            spec_exr = cv2.imread(metadata_root+"ps_fitted.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,::-1]#(height,width,3)
         else:
             spec_exr = np.ones_like(pos_exr)*spec_albedo
 
 
         mask_exr = cv2.imread(metadata_root+"mask.exr",cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)[:,:,0]#(height,width)
-        self.valid_pixels = np.where(mask_exr > 0.5)#[(valid_num,),(valid_num,)]
+        self.valid_pixels = np.where(mask_exr > 0.99)#[(valid_num,),(valid_num,)]
         self.img_height,self.img_width = mask_exr.shape
         
         ####################
@@ -83,8 +84,12 @@ class DIFT_QUALITY_CHECKER:
         self.position = pos_exr[self.valid_pixels].astype(np.float32)#(validnum,3)
         self.normal = normal_exr[self.valid_pixels].astype(np.float32)#(validnum,3)
         self.axay = axay_exr[self.valid_pixels].astype(np.float32)#(validnum,2)
-        self.pd = np.mean(diff_exr[self.valid_pixels],axis=1,keepdims=True).astype(np.float32)#(validnum,1)
-        self.ps = np.mean(spec_exr[self.valid_pixels],axis=1,keepdims=True).astype(np.float32)#(validnum,1)
+        if self.test_in_grey:
+            self.pd = np.mean(diff_exr[self.valid_pixels],axis=1,keepdims=True).astype(np.float32)#(validnum,1)
+            self.ps = np.mean(spec_exr[self.valid_pixels],axis=1,keepdims=True).astype(np.float32)#(validnum,1)
+        else:
+            self.pd = diff_exr[self.valid_pixels].astype(np.float32)#(validnum,3)
+            self.ps = spec_exr[self.valid_pixels].astype(np.float32)#(validnum,3)    
 
         self.normal = self.normal/(np.linalg.norm(self.normal,axis=1,keepdims=True)+1e-5)
 
@@ -153,7 +158,7 @@ class DIFT_QUALITY_CHECKER:
                         tmp_ps
                     ],
                     axis=1
-                )#(cur_batch_size,7)
+                )#(cur_batch_size,7/11)
                 
                 ##################################
                 ###STEP 1 convert input to torch and render them
@@ -167,7 +172,7 @@ class DIFT_QUALITY_CHECKER:
                 tmp_global_frame = [tmp_normal_tc,tmp_tangent_tc,tmp_binormal_tc]
 
                 sampled_rotate_angles = torch.from_numpy(self.sampled_rotate_angles_np).repeat(cur_batch_size,1).to(self.test_device)
-                sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]
+                sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]#(cur_batch,1)
 
                 rendered_lumi,_  = torch_render.draw_rendering_net(
                     self.setup,
@@ -177,13 +182,15 @@ class DIFT_QUALITY_CHECKER:
                     "test_view_{}".format(which_view),
                     global_custom_frame=tmp_global_frame,
                     use_custom_frame="ntb"
-                )#(cur_batch_size,lightnum,1)
+                )#(cur_batch_size,lightnum,1/3)
                 rendered_lumi = rendered_lumi*self.RENDER_SCALAR#(cur_batch_size,lightnum,1)
-                
+                if not self.test_in_grey:
+                    rendered_lumi = rendered_lumi.permute(0,2,1).reshape(cur_batch_size*3,self.setup.get_light_num(),1)#(cur_batch_size*3,lightnum,1)
+                    sampled_rotate_angles = torch.unsqueeze(sampled_rotate_angles,dim=1).repeat(1,3,1).reshape(cur_batch_size*3,1)#(cur_batch_size*3,1)
                 ##################################
                 ###STEP 2 transefer lumi to dift codes
                 #################################
-                measurements = dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size,measurement_len,1)
+                measurements = dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
 
                 cossin = torch.cat(
                         [
@@ -194,12 +201,12 @@ class DIFT_QUALITY_CHECKER:
                 
                 view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(self.test_device))#[2*batch,4,4]
                 view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
-                view_mat_model_t = view_mat_model_t.reshape(cur_batch_size,16)
+                view_mat_model_t = view_mat_model_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_model_t.reshape(cur_batch_size*3,16)
                 view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
                 view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
-                view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16)
+                view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
 
-                dift_codes = dift_trainer.dift_net(measurements,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,3)
+                dift_codes = dift_trainer.dift_net(measurements,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
     
                 dift_codes = dift_codes.cpu().numpy()
                 dift_codes.astype(np.float32).tofile(pf_save)
@@ -223,7 +230,7 @@ class DIFT_QUALITY_CHECKER:
                 "val_files/inference_dift/compact_dift_codes.py",
                 self.log_dir,
                 "{}".format(self.rotate_num),
-                "{}".format(self.dift_code_len),
+                "{}".format((self.dift_code_len if self.test_in_grey else self.dift_code_len*3)),
                 "3",
                 "--test_on_the_fly",
                 "--imgheight",

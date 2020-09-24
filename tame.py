@@ -60,16 +60,16 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=2)
-    parser.add_argument("--rendering_gpu",type=int,default=2)
-    parser.add_argument("--checker_gpu",type=int,default=2)
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=4)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
-    parser.add_argument("--dift_code_len",type=int,default=10)
+    parser.add_argument("--dift_code_len",type=int,default=16)
     parser.add_argument("--view_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
-    parser.add_argument("--pretrained_model_pan",type=str,default="")
+    parser.add_argument("--pretrained_model_pan",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Sep23_16-55-17_Kang-Deep-Learninglearn_l2_16/models/training_state.pkl")
 
     args = parser.parse_args()
     
@@ -133,10 +133,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_{}".format(args.dift_code_len))
-        # os.makedirs("../log_no_where/",exist_ok=True)
-        # os.system("rm -r ../log_no_where/*")
-        # writer = SummaryWriter(log_dir="../log_no_where/")
+        # writer = SummaryWriter(comment="learn_l2_{}".format(args.dift_code_len))
+        os.makedirs("../log_no_where/",exist_ok=True)
+        os.system("rm -r ../log_no_where/*")
+        writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
@@ -164,9 +164,33 @@ if __name__ == "__main__":
         diff_albedo=0.5,
         spec_albedo=3.0,
         batch_size=1000,
-        test_view_num=2
+        test_view_num=1
     )
     quality_checkers.append(checker_uniform_mirror_ball)
+
+    checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/textured_ball_1/metadata/",
+        "textured_ball_1",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        batch_size=1000,
+        test_view_num=1
+    )
+    quality_checkers.append(checker_textured_ball_1)
+
+    checker_golden_pig = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/golden_pig/metadata/",
+        "golden_pig",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        batch_size=1000,
+        test_view_num=1,
+        test_in_grey=False
+    )
+    quality_checkers.append(checker_golden_pig)
+
 
     start_step = 0
     ##########################################
