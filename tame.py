@@ -52,7 +52,7 @@ def log_quality(writer,quality_terms,global_step):
     writer.add_image("{}".format(term_key),quality_terms[term_key], global_step=global_step, dataformats='CHW')
 
 if __name__ == "__main__":
-    start_seed = 84057
+    start_seed = 3141553
     torch.manual_seed(1827397)
     torch.cuda.manual_seed_all(1827397)
     random.seed(start_seed)
@@ -60,9 +60,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=16)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
@@ -104,7 +104,8 @@ if __name__ == "__main__":
     train_configs["lambdas"] = lambdas
 
     train_configs["data_root"] = args.data_root
-    train_configs["batch_size"] = 25
+    train_configs["batch_size"] = 26
+    train_configs["batch_brdf_num"]=13
     train_configs["pre_load_buffer_size"] = 500000
 
     ##########################################
@@ -114,9 +115,9 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,55631)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,51637)
     train_mine.start()
-    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
+    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992411)
     val_mine.start()
     
     ##########################################
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_d{}_m{}".format(args.dift_code_len,args.measurement_num))
+        writer = SummaryWriter(comment="learn_l2_d{}_m{}_samegeo_mloss2_nonorm".format(args.dift_code_len,args.measurement_num))
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")

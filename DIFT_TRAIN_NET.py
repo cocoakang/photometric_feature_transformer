@@ -29,6 +29,7 @@ class DIFT_TRAIN_NET(nn.Module):
         self.sample_view_num = args["sample_view_num"]
         self.measurements_length = args["measurements_length"]
         self.batch_size = args["batch_size"]
+        self.batch_brdf_num = args["batch_brdf_num"]
         self.dift_code_len = args["dift_code_len"]
 
         self.lambdas = args["lambdas"]
@@ -139,16 +140,21 @@ class DIFT_TRAIN_NET(nn.Module):
 
         l2_loss = E1#position_loss
 
+        ###material loss
+        D_exp_m = D_exp[self.batch_brdf_num*0:self.batch_brdf_num*1,self.batch_size-self.batch_brdf_num*1:self.batch_size]
+        l2_loss_m = torch.sum(torch.diag(D_exp_m))*0.05
+
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)
 
-        total_loss = l2_loss#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
+        total_loss = l2_loss+l2_loss_m#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
 
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
             "loss_normal":0.0,
             "total":total_loss.item(),
-            "loss_reg_tamer":reg_loss.item()
+            "loss_reg_tamer":reg_loss.item(),
+            "loss_m":l2_loss_m.item()
         }
         return total_loss,loss_log_map
     
