@@ -21,16 +21,25 @@ class DIFT_QUALITY_CHECKER:
     The infered dift codes will be projected to visualizable lengths(3).
     '''
 
-    def __init__(self,training_configs,log_dir,metadata_root,checker_name,test_device,axay=None,diff_albedo=None,spec_albedo=None,batch_size=1000,test_view_num=1,test_in_grey=True):
+    def __init__(self,training_configs,log_dir,metadata_root,checker_name,test_device,axay=None,diff_albedo=None,spec_albedo=None,batch_size=1000,test_view_num=1,test_in_grey=True,check_type="a"):
         '''
         metadata_root: the folder contains exrs(pos.exr normal.exr (tangent.exr axay.exr pd.exr ps.exr maybe))
-
+        check_type= g or m or a
         '''
         ########################################
         ##loading setup configuration        ###
         ########################################
         self.setup = training_configs["setup_input"]
-        self.dift_code_len = training_configs["dift_code_len"]
+        self.check_type = check_type
+        if self.check_type == "a":
+            self.dift_code_len = training_configs["dift_code_len"]
+        elif self.check_type == "g":
+            self.dift_code_len = training_configs["dift_code_len_g"]
+        elif self.check_type == "m":
+            self.dift_code_len = training_configs["dift_code_len_m"]
+        else:
+            print("unkown check type:{}".format(self.check_type))
+            exit(-1)
         self.checker_name = checker_name
         self.batch_size = batch_size
         self.test_device = test_device
@@ -206,7 +215,16 @@ class DIFT_QUALITY_CHECKER:
                 view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
                 view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
 
-                dift_codes = dift_trainer.dift_net(measurements,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
+
+                dift_codes_g = dift_trainer.dift_net(measurements,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                dift_codes_m = dift_trainer.dift_net_m(measurements,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                
+                if self.check_type == "a":
+                    dift_codes = torch.cat([dift_codes_g,dift_codes_m],dim=1)
+                elif self.check_type == "g":
+                    dift_codes = dift_codes_g
+                elif self.check_type == "m":
+                    dift_codes = dift_codes_m
     
                 dift_codes = dift_codes.cpu().numpy()
                 dift_codes.astype(np.float32).tofile(pf_save)
@@ -230,7 +248,7 @@ class DIFT_QUALITY_CHECKER:
                 "val_files/inference_dift/compact_dift_codes.py",
                 self.log_dir,
                 "{}".format(self.rotate_num),
-                "{}".format((self.dift_code_len if self.test_in_grey else self.dift_code_len*3)),
+                "{}".format((self.dift_code_len) if self.test_in_grey else (self.dift_code_len*3)),
                 "3",
                 "--test_on_the_fly",
                 "--imgheight",

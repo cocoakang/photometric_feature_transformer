@@ -17,6 +17,7 @@ from multiview_renderer_mp import Multiview_Renderer
 from torch_render import Setup_Config
 from DIFT_linear_projection import DIFT_linear_projection
 from DIFT_NET import DIFT_NET
+from DIFT_NET_m import DIFT_NET_M
 
 class DIFT_TRAIN_NET(nn.Module):
     def __init__(self,args):
@@ -29,7 +30,10 @@ class DIFT_TRAIN_NET(nn.Module):
         self.sample_view_num = args["sample_view_num"]
         self.measurements_length = args["measurements_length"]
         self.batch_size = args["batch_size"]
+        self.batch_brdf_num = args["batch_brdf_num"]
         self.dift_code_len = args["dift_code_len"]
+        self.dift_code_len_g = args["dift_code_len_g"]
+        self.dift_code_len_m = args["dift_code_len_m"]
 
         self.lambdas = args["lambdas"]
 
@@ -46,6 +50,7 @@ class DIFT_TRAIN_NET(nn.Module):
         # self.denoising_net = SIGA20_NET_denoising(args)
         self.linear_projection = DIFT_linear_projection(args)
         self.dift_net = DIFT_NET(args)
+        self.dift_net_m = DIFT_NET_M(args)
         # self.material_net = SIGA20_NET_material(args)
         # self.decompose_net = SIGA20_NET_m_decompose(args)
         self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
@@ -89,10 +94,14 @@ class DIFT_TRAIN_NET(nn.Module):
         view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
-        dift_codes_origin = self.dift_net(measurements,view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
+        dift_codes_g_origin = self.dift_net(measurements,view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
+        dift_codes_m_origin = self.dift_net_m(measurements,view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
         # dift_codes_origin = dift_codes_origin*0.0+position_2
         # dift_codes_origin = torch_render.rotate_point_along_axis(self.setup,-rotate_theta,dift_codes_origin)
-        dift_codes = dift_codes_origin.reshape(2,self.batch_size,self.dift_code_len)
+        dift_codes_g_origin = dift_codes_g_origin.reshape(2,self.batch_size,self.dift_code_len_g)
+        dift_codes_m_origin = dift_codes_m_origin.reshape(2,self.batch_size,self.dift_code_len_m)
+
+        dift_codes = torch.cat([dift_codes_g_origin,dift_codes_m_origin],dim=2)
         
         ############################################################################################################################
         ## step 3 compute loss
@@ -139,6 +148,10 @@ class DIFT_TRAIN_NET(nn.Module):
 
         l2_loss = E1#position_loss
 
+        ###material loss
+        D_exp_m = D_exp[self.batch_brdf_num*0:self.batch_brdf_num*1,self.batch_size-self.batch_brdf_num*1:self.batch_size]
+        l2_loss_m = torch.sum(torch.diag(D_exp_m))*0.05
+
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)
 
@@ -148,7 +161,8 @@ class DIFT_TRAIN_NET(nn.Module):
             "loss_e1_train_tamer":E1.item(),
             "loss_normal":0.0,
             "total":total_loss.item(),
-            "loss_reg_tamer":reg_loss.item()
+            "loss_reg_tamer":reg_loss.item(),
+            "loss_m":l2_loss_m.item()
         }
         return total_loss,loss_log_map
     

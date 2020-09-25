@@ -5,12 +5,12 @@ import numpy as np
 from collections import OrderedDict
 import math
 
-class DIFT_NET(nn.Module):
+class DIFT_NET_M(nn.Module):
     def __init__(self,args):
-        super(DIFT_NET,self).__init__()
+        super(DIFT_NET_M,self).__init__()
     
         self.measurements_length = args["measurements_length"]
-        self.dift_code_len = args["dift_code_len_g"]
+        self.dift_code_len = args["dift_code_len_m"]
         self.view_code_len = args["view_code_len"]
         self.keep_prob = 0.9
         #############construct model
@@ -266,12 +266,12 @@ class DIFT_NET(nn.Module):
         # view_codes = self.view_part(torch.zeros_like(view_ids_cossin))
 
         x_n = batch_data.reshape(batch_size,self.measurements_length)
-        x_n = torch.nn.functional.normalize(x_n,dim=1)
+        # x_n = torch.nn.functional.normalize(x_n,dim=1)
         x_n = x_n.reshape(batch_size,-1)
         # x_n = torch.cat([x_n,view_codes],dim=1)
 
         dift_codes = self.dift_part(x_n)
-        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+        # dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
         dift_codes_normal = torch.cat([dift_codes,view_mat_model_t,view_mat_for_normal_t],dim=1)

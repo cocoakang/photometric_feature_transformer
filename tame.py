@@ -66,7 +66,8 @@ if __name__ == "__main__":
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=16)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
-    parser.add_argument("--dift_code_len",type=int,default=16)
+    parser.add_argument("--dift_code_len_g",type=int,default=7)
+    parser.add_argument("--dift_code_len_m",type=int,default=3)
     parser.add_argument("--view_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
@@ -93,7 +94,9 @@ if __name__ == "__main__":
     train_configs["measurements_length"] = args.measurement_num
     train_configs["noise_stddev"] = args.m_noise_rate
     train_configs["setup_input"] = setup_input
-    train_configs["dift_code_len"] = args.dift_code_len
+    train_configs["dift_code_len_g"] = args.dift_code_len_g
+    train_configs["dift_code_len_m"] = args.dift_code_len_m
+    train_configs["dift_code_len"] = args.dift_code_len_g+args.dift_code_len_m
     train_configs["view_code_len"] = args.view_code_len
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
@@ -105,6 +108,7 @@ if __name__ == "__main__":
 
     train_configs["data_root"] = args.data_root
     train_configs["batch_size"] = 25
+    train_configs["batch_brdf_num"]=13
     train_configs["pre_load_buffer_size"] = 500000
 
     ##########################################
@@ -114,7 +118,7 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,55631)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,55111)
     train_mine.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
     val_mine.start()
@@ -133,7 +137,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_d{}_m{}".format(args.dift_code_len,args.measurement_num))
+        writer = SummaryWriter(comment="learn_l2_dg{}_dm{}_m{}_2diftnet".format(args.dift_code_len_g,args.dift_code_len_m,args.measurement_num))
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")
@@ -158,15 +162,46 @@ if __name__ == "__main__":
         train_configs,
         log_dir,
         "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball",
+        "uniform_mirror_ball_g",
         torch.device("cuda:{}".format(args.checker_gpu)),
         axay=(0.05,0.05),
         diff_albedo=0.5,
         spec_albedo=3.0,
         batch_size=500,
-        test_view_num=1
+        test_view_num=1,
+        check_type="g"
     )
     quality_checkers.append(checker_uniform_mirror_ball)
+
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_m",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="m"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
+
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_a",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="a"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
     checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
         train_configs,
@@ -183,11 +218,12 @@ if __name__ == "__main__":
         train_configs,
         log_dir,
         "../../training_data/feature_pattern_models/golden_pig/metadata/",
-        "golden_pig",
+        "golden_pig_a",
         torch.device("cuda:{}".format(args.checker_gpu)),
         batch_size=500,
         test_view_num=1,
-        test_in_grey=False
+        test_in_grey=False,
+        check_type="a"
     )
     quality_checkers.append(checker_golden_pig)
 
