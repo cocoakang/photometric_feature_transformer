@@ -147,7 +147,7 @@ class DIFT_TRAIN_NET(nn.Module):
         ### !6 reg loss
         reg_loss = self.regularizer(self.dift_net)
 
-        total_loss = l2_loss+l2_loss_m#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
+        total_loss = l2_loss#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
 
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),

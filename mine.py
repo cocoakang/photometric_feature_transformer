@@ -23,7 +23,7 @@ class Mine:
         self.batch_size = train_configs["batch_size"]
         self.batch_brdf_num = train_configs["batch_brdf_num"]
         self.buffer_size = train_configs["pre_load_buffer_size"]
-        assert self.batch_brdf_num*2 <= self.batch_size,"batch_brdf_num:{} batch_size:{}".format(self.batch_brdf_num,self.batch_size)
+        # assert self.batch_brdf_num*2 <= self.batch_size,"batch_brdf_num:{} batch_size:{}".format(self.batch_brdf_num,self.batch_size)
 
         self.setup_input = train_configs["setup_input"]
         self.sample_view_num = train_configs["sample_view_num"]
@@ -177,9 +177,9 @@ class Mine:
         chossed_roate_angles = torch.from_numpy(chossed_roate_angles).to(self.rendering_device)
 
         #add brdf training samples
-        input_positions[self.batch_brdf_num*1:self.batch_brdf_num*2] = input_positions[self.batch_brdf_num*0:self.batch_brdf_num*1]
-        chossed_roate_angles[self.batch_brdf_num*1:self.batch_brdf_num*2] = chossed_roate_angles[self.batch_brdf_num*0:self.batch_brdf_num*1]
-        input_params[self.batch_brdf_num*1:self.batch_brdf_num*2,:3] =  input_params[self.batch_brdf_num*0:self.batch_brdf_num*1,:3]
+        # input_positions[self.batch_brdf_num*1:self.batch_brdf_num*2] = input_positions[self.batch_brdf_num*0:self.batch_brdf_num*1]
+        # chossed_roate_angles[self.batch_brdf_num*1:self.batch_brdf_num*2] = chossed_roate_angles[self.batch_brdf_num*0:self.batch_brdf_num*1]
+        # input_params[self.batch_brdf_num*1:self.batch_brdf_num*2,3:7] =  input_params[self.batch_brdf_num*0:self.batch_brdf_num*1,3:7]
 
         return input_params,input_positions,chossed_roate_angles
 

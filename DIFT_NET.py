@@ -266,12 +266,12 @@ class DIFT_NET(nn.Module):
         # view_codes = self.view_part(torch.zeros_like(view_ids_cossin))
 
         x_n = batch_data.reshape(batch_size,self.measurements_length)
-        # x_n = torch.nn.functional.normalize(x_n,dim=1)
+        x_n = torch.nn.functional.normalize(x_n,dim=1)
         x_n = x_n.reshape(batch_size,-1)
         # x_n = torch.cat([x_n,view_codes],dim=1)
 
         dift_codes = self.dift_part(x_n)
-        # dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
         dift_codes_normal = torch.cat([dift_codes,view_mat_model_t,view_mat_for_normal_t],dim=1)
