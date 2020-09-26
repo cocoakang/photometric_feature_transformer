@@ -57,6 +57,10 @@ class DIFT_TRAIN_NET(nn.Module):
         # self.l2_loss_fn_none = torch.nn.MSELoss(reduction='none')
         self.regularizer = Regularization(self.dift_net,1.0)#self.reg_alpha)
 
+        self.diag_ind = np.diag_indices(self.dift_code_len)
+
+        self.bn = torch.nn.BatchNorm1d(self.dift_code_len, affine=False)
+
 
     def forward(self,batch_data,call_type="train",global_step=-1):
         '''
@@ -111,9 +115,9 @@ class DIFT_TRAIN_NET(nn.Module):
         
         #E1
         eps = 1e-6
-        Y1 = torch.unsqueeze(Y1,dim=0)
-        Y2 = torch.unsqueeze(Y2,dim=1)
-        D_sub = Y1-Y2#(batch,batch,diftcode_len)
+        Y1_tmp = torch.unsqueeze(Y1,dim=0)
+        Y2_tmp = torch.unsqueeze(Y2,dim=1)
+        D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
         D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
         # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
         # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]
@@ -143,26 +147,48 @@ class DIFT_TRAIN_NET(nn.Module):
         
         E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
-        # normal_loss = self.l2_loss_fn(dift_codes_origin,normal_label)
-        position_loss = self.l2_loss_fn(position_2,position_2)
+        #covariance loss
+        # print("========================================")
+        for i,Ys in enumerate([Y1, Y2]):
+            '''
+            Ys (imgnum,codelen)
+            '''
+            # Ys_sub_mean = Ys - torch.mean(Ys,dim=0,keepdim=True)#(imgnum,codelen)
+            # upper = torch.matmul(torch.transpose(Ys_sub_mean,1,0),Ys_sub_mean)#(codelen,codelen)
+            # diag = torch.unsqueeze(torch.sqrt(torch.diag(upper)),dim=0)#(1,codelen)
+            # bottom = torch.transpose(diag,1,0)*diag#(codelen,codelen)
+            # Rs = upper/bottom
+            # Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
+            # tmp_E2 = torch.sum(Rs*Rs)*0.5
 
-        l2_loss = E1#position_loss
+            Ys = self.bn(Ys)
+            Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
+            Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
+            tmp_E2 = torch.sum(Rs*Rs)*0.5
 
+            if i == 0:
+                E2 = tmp_E2
+            else:
+                E2 = E2 + tmp_E2
+
+        l2_loss = E1+E2*1e-3#position_loss
+        # if global_step > 1:
+        #     exit(0)
         ###material loss
-        D_exp_m = D_exp[self.batch_brdf_num*0:self.batch_brdf_num*1,self.batch_size-self.batch_brdf_num*1:self.batch_size]
-        l2_loss_m = torch.sum(torch.diag(D_exp_m))*0.05
+        # D_exp_m = D_exp[self.batch_brdf_num*0:self.batch_brdf_num*1,self.batch_size-self.batch_brdf_num*1:self.batch_size]
+        # l2_loss_m = torch.sum(torch.diag(D_exp_m))*0.05
 
         ### !6 reg loss
-        reg_loss = self.regularizer(self.dift_net)
+        # reg_loss = self.regularizer(self.dift_net)
 
         total_loss = l2_loss#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
 
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
-            "loss_normal":0.0,
+            "loss_e2_train_tamer":E2.item(),
+            # "loss_normal":0.0,
             "total":total_loss.item(),
-            "loss_reg_tamer":reg_loss.item(),
-            "loss_m":l2_loss_m.item()
+            # "loss_reg_tamer":reg_loss.item()
         }
         return total_loss,loss_log_map
     
