@@ -256,7 +256,7 @@ if __name__ == "__main__":
             # print("got val")
             with torch.no_grad():
                 training_net.eval()
-                _,loss_log_terms = training_net(val_data,global_step=global_step)
+                _,loss_log_terms = training_net(val_data,global_step=global_step,call_type="val")
             log_loss(writer,loss_log_terms,global_step,False)
             
         ## 2 check quality

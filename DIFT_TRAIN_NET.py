@@ -105,15 +105,56 @@ class DIFT_TRAIN_NET(nn.Module):
         dift_codes_g_origin = dift_codes_g_origin.reshape(2,self.batch_size,self.dift_code_len_g)
         dift_codes_m_origin = dift_codes_m_origin.reshape(2,self.batch_size,self.dift_code_len_m)
 
-        # dift_codes = torch.cat([dift_codes_g_origin,dift_codes_m_origin],dim=2)
         
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################
-        E1_collector = []
-        for dift_codes in [dift_codes_g_origin,dift_codes_m_origin]:
-            Y1 = dift_codes[0]#[batch,diftcode_len]
-            Y2 = dift_codes[1]#[batch,diftcode_len]
+        if call_type != "val":
+            E1_collector = []
+            for dift_codes in [dift_codes_g_origin,dift_codes_m_origin]:
+                Y1 = dift_codes[0]#[batch,diftcode_len]
+                Y2 = dift_codes[1]#[batch,diftcode_len]
+                
+                #E1
+                eps = 1e-6
+                Y1_tmp = torch.unsqueeze(Y1,dim=0)
+                Y2_tmp = torch.unsqueeze(Y2,dim=1)
+                D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
+                D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
+                # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
+                # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]
+                
+                if call_type == "check_quality":
+                    #fech every lumitexel from gpus
+                    term_map = {
+                        "input_lumis":input_lumis.cpu(),
+                        "distance_matrix":D.cpu(),
+                        "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
+                        "global_positions":global_positions.cpu(),
+                        "normal_label":normal_label.cpu(),
+                        "normal_nn":normal_label.cpu()
+                    }
+                    term_map = self.visualize_quality_terms(term_map)
+                    return term_map
+
+
+                D_exp = torch.exp(2.0-D)
+                D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
+                #"compute_col_loss"
+                D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]
+                s_ii_c = D_ii / (eps+D_col_sum)
+                #"compute_row_loss"
+                D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
+                s_ii_r = D_ii / (eps+D_row_sum)
+                
+                tmp_E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
+                E1_collector.append(tmp_E1)
+
+            E1 = E1_collector[0]+E1_collector[1]*1e-1
+        else:
+            dift_codes_full = torch.cat([dift_codes_g_origin,dift_codes_m_origin],dim=2)
+            Y1 = dift_codes_full[0]#[batch,diftcode_len]
+            Y2 = dift_codes_full[1]#[batch,diftcode_len]
             
             #E1
             eps = 1e-6
@@ -121,22 +162,6 @@ class DIFT_TRAIN_NET(nn.Module):
             Y2_tmp = torch.unsqueeze(Y2,dim=1)
             D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
             D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
-            # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
-            # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]
-            
-            if call_type == "check_quality":
-                #fech every lumitexel from gpus
-                term_map = {
-                    "input_lumis":input_lumis.cpu(),
-                    "distance_matrix":D.cpu(),
-                    "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
-                    "global_positions":global_positions.cpu(),
-                    "normal_label":normal_label.cpu(),
-                    "normal_nn":normal_label.cpu()
-                }
-                term_map = self.visualize_quality_terms(term_map)
-                return term_map
-
 
             D_exp = torch.exp(2.0-D)
             D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
@@ -147,10 +172,7 @@ class DIFT_TRAIN_NET(nn.Module):
             D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
             s_ii_r = D_ii / (eps+D_row_sum)
             
-            tmp_E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
-            E1_collector.append(tmp_E1)
-
-        E1 = E1_collector[0]+E1_collector[1]*1e-1
+            E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
         #covariance loss
         # print("========================================")
