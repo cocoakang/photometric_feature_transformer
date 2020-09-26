@@ -60,9 +60,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=16)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
@@ -137,10 +137,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        # writer = SummaryWriter(comment="learn_l2_dg{}_dm{}_m{}_2diftnet".format(args.dift_code_len_g,args.dift_code_len_m,args.measurement_num))
-        os.makedirs("../log_no_where/",exist_ok=True)
-        os.system("rm -r ../log_no_where/*")
-        writer = SummaryWriter(log_dir="../log_no_where/")
+        writer = SummaryWriter(comment="learn_l2_dg{}_dm{}_m{}_2diftnet_2loss".format(args.dift_code_len_g,args.dift_code_len_m,args.measurement_num))
+        # os.makedirs("../log_no_where/",exist_ok=True)
+        # os.system("rm -r ../log_no_where/*")
+        # writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()

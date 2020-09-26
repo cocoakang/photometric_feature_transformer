@@ -105,73 +105,78 @@ class DIFT_TRAIN_NET(nn.Module):
         dift_codes_g_origin = dift_codes_g_origin.reshape(2,self.batch_size,self.dift_code_len_g)
         dift_codes_m_origin = dift_codes_m_origin.reshape(2,self.batch_size,self.dift_code_len_m)
 
-        dift_codes = torch.cat([dift_codes_g_origin,dift_codes_m_origin],dim=2)
+        # dift_codes = torch.cat([dift_codes_g_origin,dift_codes_m_origin],dim=2)
         
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################
-        Y1 = dift_codes[0]#[batch,diftcode_len]
-        Y2 = dift_codes[1]#[batch,diftcode_len]
-        
-        #E1
-        eps = 1e-6
-        Y1_tmp = torch.unsqueeze(Y1,dim=0)
-        Y2_tmp = torch.unsqueeze(Y2,dim=1)
-        D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
-        D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
-        # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
-        # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]
-        
-        if call_type == "check_quality":
-            #fech every lumitexel from gpus
-            term_map = {
-                "input_lumis":input_lumis.cpu(),
-                "distance_matrix":D.cpu(),
-                "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
-                "global_positions":global_positions.cpu(),
-                "normal_label":normal_label.cpu(),
-                "normal_nn":normal_label.cpu()
-            }
-            term_map = self.visualize_quality_terms(term_map)
-            return term_map
+        E1_collector = []
+        for dift_codes in [dift_codes_g_origin,dift_codes_m_origin]:
+            Y1 = dift_codes[0]#[batch,diftcode_len]
+            Y2 = dift_codes[1]#[batch,diftcode_len]
+            
+            #E1
+            eps = 1e-6
+            Y1_tmp = torch.unsqueeze(Y1,dim=0)
+            Y2_tmp = torch.unsqueeze(Y2,dim=1)
+            D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
+            D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
+            # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
+            # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]
+            
+            if call_type == "check_quality":
+                #fech every lumitexel from gpus
+                term_map = {
+                    "input_lumis":input_lumis.cpu(),
+                    "distance_matrix":D.cpu(),
+                    "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
+                    "global_positions":global_positions.cpu(),
+                    "normal_label":normal_label.cpu(),
+                    "normal_nn":normal_label.cpu()
+                }
+                term_map = self.visualize_quality_terms(term_map)
+                return term_map
 
 
-        D_exp = torch.exp(2.0-D)
-        D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
-        #"compute_col_loss"
-        D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]
-        s_ii_c = D_ii / (eps+D_col_sum)
-        #"compute_row_loss"
-        D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
-        s_ii_r = D_ii / (eps+D_row_sum)
-        
-        E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
+            D_exp = torch.exp(2.0-D)
+            D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
+            #"compute_col_loss"
+            D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]
+            s_ii_c = D_ii / (eps+D_col_sum)
+            #"compute_row_loss"
+            D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
+            s_ii_r = D_ii / (eps+D_row_sum)
+            
+            tmp_E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
+            E1_collector.append(tmp_E1)
+
+        E1 = E1_collector[0]+E1_collector[1]*1e-1
 
         #covariance loss
         # print("========================================")
-        for i,Ys in enumerate([Y1, Y2]):
-            '''
-            Ys (imgnum,codelen)
-            '''
-            # Ys_sub_mean = Ys - torch.mean(Ys,dim=0,keepdim=True)#(imgnum,codelen)
-            # upper = torch.matmul(torch.transpose(Ys_sub_mean,1,0),Ys_sub_mean)#(codelen,codelen)
-            # diag = torch.unsqueeze(torch.sqrt(torch.diag(upper)),dim=0)#(1,codelen)
-            # bottom = torch.transpose(diag,1,0)*diag#(codelen,codelen)
-            # Rs = upper/bottom
-            # Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
-            # tmp_E2 = torch.sum(Rs*Rs)*0.5
+        # for i,Ys in enumerate([Y1, Y2]):
+        #     '''
+        #     Ys (imgnum,codelen)
+        #     '''
+        #     # Ys_sub_mean = Ys - torch.mean(Ys,dim=0,keepdim=True)#(imgnum,codelen)
+        #     # upper = torch.matmul(torch.transpose(Ys_sub_mean,1,0),Ys_sub_mean)#(codelen,codelen)
+        #     # diag = torch.unsqueeze(torch.sqrt(torch.diag(upper)),dim=0)#(1,codelen)
+        #     # bottom = torch.transpose(diag,1,0)*diag#(codelen,codelen)
+        #     # Rs = upper/bottom
+        #     # Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
+        #     # tmp_E2 = torch.sum(Rs*Rs)*0.5
 
-            Ys = self.bn(Ys)
-            Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
-            Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
-            tmp_E2 = torch.sum(Rs*Rs)*0.5
+        #     Ys = self.bn(Ys)
+        #     Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
+        #     Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
+        #     tmp_E2 = torch.sum(Rs*Rs)*0.5
 
-            if i == 0:
-                E2 = tmp_E2
-            else:
-                E2 = E2 + tmp_E2
+        #     if i == 0:
+        #         E2 = tmp_E2
+        #     else:
+        #         E2 = E2 + tmp_E2
 
-        l2_loss = E1+E2*1e-3#position_loss
+        l2_loss = E1#+E2*1e-3#position_loss
         # if global_step > 1:
         #     exit(0)
         ###material loss
@@ -185,7 +190,7 @@ class DIFT_TRAIN_NET(nn.Module):
 
         loss_log_map = {
             "loss_e1_train_tamer":E1.item(),
-            "loss_e2_train_tamer":E2.item(),
+            # "loss_e2_train_tamer":E2.item(),
             # "loss_normal":0.0,
             "total":total_loss.item(),
             # "loss_reg_tamer":reg_loss.item()
