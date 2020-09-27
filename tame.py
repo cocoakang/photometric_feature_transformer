@@ -60,9 +60,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=3)
+    parser.add_argument("--rendering_gpu",type=int,default=3)
+    parser.add_argument("--checker_gpu",type=int,default=3)
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=16)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)

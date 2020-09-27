@@ -18,7 +18,8 @@ if __name__ == "__main__":
     parser.add_argument("sample_view_num",type=int)
     parser.add_argument("rotate_num",type=int)
     parser.add_argument("measurement_len",type=int)
-    parser.add_argument("dift_code_len",type=int)
+    parser.add_argument("dift_code_len_g",type=int)
+    parser.add_argument("dift_code_len_m",type=int)
     parser.add_argument("view_code_len",type=int)
 
     parser.add_argument("--batch_size",type=int,default=5000)

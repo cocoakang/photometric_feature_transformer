@@ -105,7 +105,7 @@ class DIFT_TRAIN_NET(nn.Module):
         dift_codes_g_origin = dift_codes_g_origin.reshape(2,self.batch_size,self.dift_code_len_g)
         dift_codes_m_origin = dift_codes_m_origin.reshape(2,self.batch_size,self.dift_code_len_m)
 
-        
+        dift_codes_full = torch.cat([dift_codes_g_origin,dift_codes_m_origin],dim=2)
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################
@@ -152,7 +152,6 @@ class DIFT_TRAIN_NET(nn.Module):
 
             E1 = E1_collector[0]+E1_collector[1]*1e-1
         else:
-            dift_codes_full = torch.cat([dift_codes_g_origin,dift_codes_m_origin],dim=2)
             Y1 = dift_codes_full[0]#[batch,diftcode_len]
             Y2 = dift_codes_full[1]#[batch,diftcode_len]
             
@@ -174,20 +173,14 @@ class DIFT_TRAIN_NET(nn.Module):
             
             E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
 
-        #covariance loss
+        # covariance loss
         # print("========================================")
+        # Y1 = dift_codes_full[0]#[batch,diftcode_len]
+        # Y2 = dift_codes_full[1]#[batch,diftcode_len]
         # for i,Ys in enumerate([Y1, Y2]):
         #     '''
         #     Ys (imgnum,codelen)
         #     '''
-        #     # Ys_sub_mean = Ys - torch.mean(Ys,dim=0,keepdim=True)#(imgnum,codelen)
-        #     # upper = torch.matmul(torch.transpose(Ys_sub_mean,1,0),Ys_sub_mean)#(codelen,codelen)
-        #     # diag = torch.unsqueeze(torch.sqrt(torch.diag(upper)),dim=0)#(1,codelen)
-        #     # bottom = torch.transpose(diag,1,0)*diag#(codelen,codelen)
-        #     # Rs = upper/bottom
-        #     # Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
-        #     # tmp_E2 = torch.sum(Rs*Rs)*0.5
-
         #     Ys = self.bn(Ys)
         #     Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
         #     Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
@@ -198,7 +191,7 @@ class DIFT_TRAIN_NET(nn.Module):
         #     else:
         #         E2 = E2 + tmp_E2
 
-        l2_loss = E1#+E2*1e-3#position_loss
+        l2_loss = E1#+E2#position_loss
         # if global_step > 1:
         #     exit(0)
         ###material loss
