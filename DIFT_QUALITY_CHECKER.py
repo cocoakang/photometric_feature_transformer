@@ -33,8 +33,10 @@ class DIFT_QUALITY_CHECKER:
         self.check_type = check_type
         if self.check_type == "a":
             self.dift_code_len = training_configs["dift_code_len"]
-        elif self.check_type == "g":
-            self.dift_code_len = training_configs["dift_code_len_g"]
+        elif self.check_type == "gh":
+            self.dift_code_len = training_configs["dift_code_len_gh"]
+        elif self.check_type == "gv":
+            self.dift_code_len = training_configs["dift_code_len_gv"]
         elif self.check_type == "m":
             self.dift_code_len = training_configs["dift_code_len_m"]
         else:
@@ -216,13 +218,16 @@ class DIFT_QUALITY_CHECKER:
                 view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
 
 
-                dift_codes_g = dift_trainer.dift_net(measurements,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
-                dift_codes_m = dift_trainer.dift_net_m(measurements,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                dift_codes_gh = dift_trainer.dift_net_gh(measurements[:,0:5,:],cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                dift_codes_gv = dift_trainer.dift_net_gv(measurements[:,5:10,:],cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                dift_codes_m = dift_trainer.dift_net_m(measurements[:,10:,:],cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
                 
                 if self.check_type == "a":
-                    dift_codes = torch.cat([dift_codes_g,dift_codes_m],dim=1)
-                elif self.check_type == "g":
-                    dift_codes = dift_codes_g
+                    dift_codes = torch.cat([dift_codes_gh,dift_codes_gv,dift_codes_m],dim=1)
+                elif self.check_type == "gh":
+                    dift_codes = dift_codes_gh
+                elif self.check_type == "gv":
+                    dift_codes = dift_codes_gv
                 elif self.check_type == "m":
                     dift_codes = dift_codes_m
     

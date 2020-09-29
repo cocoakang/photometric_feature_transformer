@@ -5,19 +5,19 @@ import numpy as np
 from collections import OrderedDict
 import math
 
-class DIFT_NET(nn.Module):
+class DIFT_NET_H(nn.Module):
     def __init__(self,args):
-        super(DIFT_NET,self).__init__()
+        super(DIFT_NET_H,self).__init__()
     
-        self.measurements_length = args["measurements_length"]
-        self.dift_code_len = args["dift_code_len_g"]
+        self.measurements_length = 5#args["measurements_length"]
+        self.dift_code_len = args["dift_code_len_gh"]
         self.view_code_len = args["view_code_len"]
         self.keep_prob = 0.9
         #############construct model
         input_size = self.measurements_length*1#+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
-        self.dift_part2 = self.dift_part_f2(32+16+16)
+        self.dift_part2 = self.dift_part_f2(32)
         # self.dift_part3 = self.dift_part_f2(128+16)
         # self.view_part = self.view_part_f(2)
     
@@ -274,11 +274,9 @@ class DIFT_NET(nn.Module):
         dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
-        dift_codes_normal = torch.cat([dift_codes,view_mat_model_t,view_mat_for_normal_t],dim=1)
+        # dift_codes_normal = torch.cat([dift_codes,view_mat_model_t,view_mat_for_normal_t],dim=1)
         # dift_codes_pos = nn.functional.sigmoid(self.dift_part2(dift_codes_pos))
-        dift_codes_normal = self.dift_part2(dift_codes_normal)
-        dift_codes_normal = torch.nn.functional.normalize(dift_codes_normal,dim=1)
-
-        dift_codes = dift_codes_normal#torch.cat([dift_codes_pos,dift_codes_normal],dim=1)
+        dift_codes = self.dift_part2(dift_codes)
+        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         return dift_codes#,torch.zeros(batch_size,3,dtype=torch.float32)

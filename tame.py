@@ -66,7 +66,8 @@ if __name__ == "__main__":
     parser.add_argument("--sample_view_num",type=int,default=24)
     parser.add_argument("--measurement_num",type=int,default=16)
     parser.add_argument("--m_noise_rate",type=float,default=0.01)
-    parser.add_argument("--dift_code_len_g",type=int,default=7)
+    parser.add_argument("--dift_code_len_gv",type=int,default=4)
+    parser.add_argument("--dift_code_len_gh",type=int,default=3)
     parser.add_argument("--dift_code_len_m",type=int,default=3)
     parser.add_argument("--view_code_len",type=int,default=128)
     parser.add_argument("--log_file_name",type=str,default="")
@@ -94,9 +95,10 @@ if __name__ == "__main__":
     train_configs["measurements_length"] = args.measurement_num
     train_configs["noise_stddev"] = args.m_noise_rate
     train_configs["setup_input"] = setup_input
-    train_configs["dift_code_len_g"] = args.dift_code_len_g
+    train_configs["dift_code_len_gv"] = args.dift_code_len_gv
+    train_configs["dift_code_len_gh"] = args.dift_code_len_gh
     train_configs["dift_code_len_m"] = args.dift_code_len_m
-    train_configs["dift_code_len"] = args.dift_code_len_g+args.dift_code_len_m
+    train_configs["dift_code_len"] = args.dift_code_len_gv+args.dift_code_len_gh+args.dift_code_len_m
     train_configs["view_code_len"] = args.view_code_len
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
@@ -137,7 +139,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_dg{}_dm{}_m{}_2diftnet_2loss".format(args.dift_code_len_g,args.dift_code_len_m,args.measurement_num))
+        writer = SummaryWriter(comment="learn_l2_dgh{}_dgv{}_dm{}_m{}_3diftnet_3loss".format(args.dift_code_len_gh,args.dift_code_len_gv,args.dift_code_len_m,args.measurement_num))
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")
@@ -162,46 +164,61 @@ if __name__ == "__main__":
         train_configs,
         log_dir,
         "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_g",
+        "uniform_mirror_ball_gh",
         torch.device("cuda:{}".format(args.checker_gpu)),
         axay=(0.05,0.05),
         diff_albedo=0.5,
         spec_albedo=3.0,
         batch_size=500,
         test_view_num=1,
-        check_type="g"
+        check_type="gh"
     )
     quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_m",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="m"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_gv",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="gv"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_a",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="a"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_m",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="m"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
+
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_a",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="a"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
     checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
         train_configs,
