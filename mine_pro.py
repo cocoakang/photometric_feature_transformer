@@ -99,9 +99,11 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed):
         # position_2 = end_points["position"].reshape(batch_size,2,3)
         # position_2 = position_2.permute(1,0,2).reshape(2*batch_size,3)
 
+        param_2 = param_2.reshape(batch_size,2,7).permute(1,0,2).reshape(2*batch_size,7)
+
         training_data_map = {
             "input_lumi":rendered_result,
-            "param":param,
+            "param_2":param_2,
             "position":position,
             "position_2":position_2,
             "normal_local":normals_localview,

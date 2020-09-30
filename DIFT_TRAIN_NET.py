@@ -16,9 +16,8 @@ import torch_render
 from multiview_renderer_mp import Multiview_Renderer
 from torch_render import Setup_Config
 from DIFT_linear_projection import DIFT_linear_projection
-from DIFT_NET_v import DIFT_NET_V
-from DIFT_NET_h import DIFT_NET_H
-from DIFT_NET_m import DIFT_NET_M
+from ALBEDO_NET import ALBEDO_NET
+from DIFT_NET import DIFT_NET
 
 class DIFT_TRAIN_NET(nn.Module):
     def __init__(self,args):
@@ -33,11 +32,9 @@ class DIFT_TRAIN_NET(nn.Module):
         self.batch_size = args["batch_size"]
         self.batch_brdf_num = args["batch_brdf_num"]
         self.dift_code_len = args["dift_code_len"]
-        self.dift_code_len_gv = args["dift_code_len_gv"]
-        self.dift_code_len_gh = args["dift_code_len_gh"]
-        self.dift_code_len_m = args["dift_code_len_m"]
 
         self.lambdas = args["lambdas"]
+        self.partition = args["partition"]
 
         ########################################
         ##loading setup configuration        ###
@@ -51,9 +48,8 @@ class DIFT_TRAIN_NET(nn.Module):
 
         # self.denoising_net = SIGA20_NET_denoising(args)
         self.linear_projection = DIFT_linear_projection(args)
-        self.dift_net_gh = DIFT_NET_H(args)
-        self.dift_net_gv = DIFT_NET_V(args)
-        self.dift_net_m = DIFT_NET_M(args)
+        self.albedo_net = ALBEDO_NET(args)
+        self.dift_net = DIFT_NET(args)
         # self.material_net = SIGA20_NET_material(args)
         # self.decompose_net = SIGA20_NET_m_decompose(args)
         self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
@@ -85,6 +81,7 @@ class DIFT_TRAIN_NET(nn.Module):
         normal_label_local = batch_data["normal_local"].to(self.training_device)#(2*batchsize,3)
         rotate_theta = batch_data["rotate_theta"].to(self.training_device)#(2*batchsize,1)
         position_2 = batch_data["position_2"].to(self.training_device)#(2*batchsize,3)
+        param_2 = batch_data["param_2"].to(self.training_device)#(2*batchsize,7)
 
         ############################################################################################################################
         ## step 2 draw nn net
@@ -93,6 +90,9 @@ class DIFT_TRAIN_NET(nn.Module):
         input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
         measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
         #concatenate measurements
+        
+        #2 infer albedo using neural network
+        albedo_nn_diff,albedo_nn_spec = self.albedo_net(measurements)#(2*batchsize,1),(2*batchsize,1)
 
         view_mat_model = torch_render.rotation_axis(-rotate_theta,self.setup.get_rot_axis_torch(measurements.device))#[2*batch,4,4]
         view_mat_model_t = torch.transpose(view_mat_model,1,2)#[2*batch,4,4]
@@ -101,22 +101,15 @@ class DIFT_TRAIN_NET(nn.Module):
         view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
-        dift_codes_gh_origin = self.dift_net_gh(measurements[:,0:5,:],view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
-        dift_codes_gv_origin = self.dift_net_gv(measurements[:,5:10,:],view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
-        dift_codes_m_origin = self.dift_net_m(measurements[:,10:,:],view_ids_cossin,view_mat_model_t,view_mat_for_normal_t)#(2*batch,diftcodelen)
-        # dift_codes_origin = dift_codes_origin*0.0+position_2
-        # dift_codes_origin = torch_render.rotate_point_along_axis(self.setup,-rotate_theta,dift_codes_origin)
-        dift_codes_gh_origin = dift_codes_gh_origin.reshape(2,self.batch_size,self.dift_code_len_gh)
-        dift_codes_gv_origin = dift_codes_gv_origin.reshape(2,self.batch_size,self.dift_code_len_gv)
-        dift_codes_m_origin = dift_codes_m_origin.reshape(2,self.batch_size,self.dift_code_len_m)
-
-        dift_codes_full = torch.cat([dift_codes_gh_origin,dift_codes_gv_origin,dift_codes_m_origin],dim=2)
+        dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(2*batch,diftcodelen)
+        dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################
         if call_type == "train":
-            E1_collector = []
-            for dift_codes in [dift_codes_gh_origin,dift_codes_gv_origin,dift_codes_m_origin]:
+            for i,code_key in enumerate(origin_codes_map):
+                dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.partition[code_key][1])
+                
                 Y1 = dift_codes[0]#[batch,diftcode_len]
                 Y2 = dift_codes[1]#[batch,diftcode_len]
                 
@@ -139,10 +132,12 @@ class DIFT_TRAIN_NET(nn.Module):
                 s_ii_r = D_ii / (eps+D_row_sum)
                 
                 tmp_E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
-                E1_collector.append(tmp_E1)
-
-            E1 = E1_collector[0]+E1_collector[1]*1e1+E1_collector[2]*1e-1
-        elif call_type == "check_quality":
+                
+                if i == 0:
+                    E1 = tmp_E1*self.partition[code_key][2]
+                else:
+                    E1 = E1 + tmp_E1*self.partition[code_key][2]
+        elif call_type == "val" or call_type == "check_quality":
             Y1 = dift_codes_full[0]#[batch,diftcode_len]
             Y2 = dift_codes_full[1]#[batch,diftcode_len]
             
@@ -152,30 +147,18 @@ class DIFT_TRAIN_NET(nn.Module):
             Y2_tmp = torch.unsqueeze(Y2,dim=1)
             D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
             D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
-            # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
-            # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]        
 
-            #fech every lumitexel from gpus
-            term_map = {
-                "input_lumis":input_lumis.cpu(),
-                "distance_matrix":D.cpu(),
-                "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
-                "global_positions":global_positions.cpu(),
-                "normal_label":normal_label.cpu(),
-                "normal_nn":normal_label.cpu()
-            }
-            term_map = self.visualize_quality_terms(term_map)
-            return term_map
-        elif call_type == "val":
-            Y1 = dift_codes_full[0]#[batch,diftcode_len]
-            Y2 = dift_codes_full[1]#[batch,diftcode_len]
-            
-            #E1
-            eps = 1e-6
-            Y1_tmp = torch.unsqueeze(Y1,dim=0)
-            Y2_tmp = torch.unsqueeze(Y2,dim=1)
-            D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
-            D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
+            if call_type == "check_quality" :
+                term_map = {
+                    "input_lumis":input_lumis.cpu(),
+                    "distance_matrix":D.cpu(),
+                    "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
+                    "global_positions":global_positions.cpu(),
+                    "normal_label":normal_label.cpu(),
+                    "normal_nn":normal_label.cpu()
+                }
+                term_map = self.visualize_quality_terms(term_map)
+                return term_map
 
             D_exp = torch.exp(2.0-D)
             D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
@@ -190,7 +173,9 @@ class DIFT_TRAIN_NET(nn.Module):
         else:
             print("unkown call type")
             exit(0)
-        # covariance loss
+        #######
+        #### covariance loss
+        #######
         # print("========================================")
         # Y1 = dift_codes_full[0]#[batch,diftcode_len]
         # Y2 = dift_codes_full[1]#[batch,diftcode_len]
@@ -208,7 +193,13 @@ class DIFT_TRAIN_NET(nn.Module):
         #     else:
         #         E2 = E2 + tmp_E2
 
-        l2_loss = E1#+E2#position_loss
+        #######
+        #### albedo loss
+        #######
+        albedo_loss_diff = self.l2_loss_fn(albedo_nn_diff,param_2[:,[5]])
+        albedo_loss_spec = self.l2_loss_fn(albedo_nn_diff,param_2[:,[6]])
+        albedo_loss = albedo_loss_diff+albedo_nn_spec
+
         # if global_step > 1:
         #     exit(0)
         ###material loss
@@ -218,10 +209,12 @@ class DIFT_TRAIN_NET(nn.Module):
         ### !6 reg loss
         # reg_loss = self.regularizer(self.dift_net)
 
-        total_loss = l2_loss#+reg_loss#+loss_kernel.to(l2_loss.device)*0.03
+        total_loss = albedo_loss+E1
 
         loss_log_map = {
-            "loss_e1_train_tamer":E1.item(),
+            "albedo_loss_diff":albedo_loss_diff.item(),
+            "albedo_loss_spec":albedo_loss_spec.item(),
+            # "loss_e1_train_tamer":E1.item(),
             # "loss_e2_train_tamer":E2.item(),
             # "loss_normal":0.0,
             "total":total_loss.item(),
