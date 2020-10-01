@@ -31,17 +31,7 @@ class DIFT_QUALITY_CHECKER:
         ########################################
         self.setup = training_configs["setup_input"]
         self.check_type = check_type
-        if self.check_type == "a":
-            self.dift_code_len = training_configs["dift_code_len"]
-        elif self.check_type == "gh":
-            self.dift_code_len = training_configs["dift_code_len_gh"]
-        elif self.check_type == "gv":
-            self.dift_code_len = training_configs["dift_code_len_gv"]
-        elif self.check_type == "m":
-            self.dift_code_len = training_configs["dift_code_len_m"]
-        else:
-            print("unkown check type:{}".format(self.check_type))
-            exit(-1)
+        self.dift_code_len = training_configs["dift_code_len"] if check_type == "a" else training_configs["partition"][check_type][1]
         self.checker_name = checker_name
         self.batch_size = batch_size
         self.test_device = test_device
@@ -217,19 +207,13 @@ class DIFT_QUALITY_CHECKER:
                 view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
                 view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
 
-
-                dift_codes_gh = dift_trainer.dift_net_gh(measurements[:,0:5,:],cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
-                dift_codes_gv = dift_trainer.dift_net_gv(measurements[:,5:10,:],cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
-                dift_codes_m = dift_trainer.dift_net_m(measurements[:,10:,:],cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                albedo_nn_diff,albedo_nn_spec = dift_trainer.albedo_net(measurements)
+                dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
                 
                 if self.check_type == "a":
-                    dift_codes = torch.cat([dift_codes_gh,dift_codes_gv,dift_codes_m],dim=1)
-                elif self.check_type == "gh":
-                    dift_codes = dift_codes_gh
-                elif self.check_type == "gv":
-                    dift_codes = dift_codes_gv
-                elif self.check_type == "m":
-                    dift_codes = dift_codes_m
+                    dift_codes = dift_codes_full
+                else:
+                    dift_codes = origin_code_map[self.check_type]
     
                 dift_codes = dift_codes.cpu().numpy()
                 dift_codes.astype(np.float32).tofile(pf_save)

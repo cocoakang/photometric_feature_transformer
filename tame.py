@@ -63,12 +63,6 @@ if __name__ == "__main__":
     parser.add_argument("--training_gpu",type=int,default=0)
     parser.add_argument("--rendering_gpu",type=int,default=0)
     parser.add_argument("--checker_gpu",type=int,default=0)
-    parser.add_argument("--sample_view_num",type=int,default=24)
-    parser.add_argument("--measurement_num",type=int,default=16)
-    parser.add_argument("--m_noise_rate",type=float,default=0.01)
-    parser.add_argument("--dift_code_len_gv",type=int,default=4)
-    parser.add_argument("--dift_code_len_gh",type=int,default=3)
-    parser.add_argument("--dift_code_len_m",type=int,default=3)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -88,31 +82,33 @@ if __name__ == "__main__":
     train_configs = {}
     train_configs["rendering_device"] = torch.device("cuda:{}".format(args.rendering_gpu))
     train_configs["training_device"] = torch.device("cuda:{}".format(args.training_gpu))
-    train_configs["sample_view_num"] = args.sample_view_num
+    train_configs["sample_view_num"] = 24
     train_configs["lumitexel_downsample_rate"] = 1
     train_configs["lumitexel_length"] = 24576 // train_configs["lumitexel_downsample_rate"] // train_configs["lumitexel_downsample_rate"]
-    train_configs["measurements_length"] = args.measurement_num
-    train_configs["noise_stddev"] = args.m_noise_rate
+    train_configs["noise_stddev"] = 0.01
     train_configs["setup_input"] = setup_input
-    train_configs["dift_code_len_gv"] = args.dift_code_len_gv
-    train_configs["dift_code_len_gh"] = args.dift_code_len_gh
-    train_configs["dift_code_len_m"] = args.dift_code_len_m
-    train_configs["dift_code_len"] = args.dift_code_len_gv+args.dift_code_len_gh+args.dift_code_len_m
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len,dift_code_len,losslambda
-    partition["albedo"] = (args.measurement_num,train_configs["dift_code_len"],1.0)
+    partition["albedo"] = (0,3,1.0)
+    partition["g_diff_local"] = (5,4,1.0)
+    partition["g_diff_global"] = (5,4,1e1)
+    partition["g_spec"] = (6,4,1.0)
+
+    train_configs["measurements_length"] = sum([partition[a_key][0] for a_key in partition])
     train_configs["partition"] = partition
+    train_configs["dift_code_len"] = sum([partition[a_key][1] for a_key in partition])
 
     lambdas = {}
-    lambdas["diff"] =1.0
-    lambdas["weight"] = 1e-3
+    lambdas["E1"] =1.0
+    lambdas["albedo"] = 10.0
+    lambdas["albedo_diff"] = 1.0
+    lambdas["albedo_spec"] = 1e-2
     train_configs["lambdas"] = lambdas
 
     train_configs["data_root"] = args.data_root
     train_configs["batch_size"] = 25
-    train_configs["batch_brdf_num"]=13
     train_configs["pre_load_buffer_size"] = 500000
 
     ##########################################
@@ -163,65 +159,80 @@ if __name__ == "__main__":
     ###quality checker
     quality_checkers = []
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_gh",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="gh"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_gh",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="g_diff_local"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_gv",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="gv"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_gv",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="g_diff_global"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_m",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="m"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_m",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="albedo"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_a",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="a"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_spec",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="g_spec"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
+
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_a",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="a"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
     #     train_configs,
@@ -293,9 +304,8 @@ if __name__ == "__main__":
             #check with real(real fake) data
             with torch.no_grad():
                 for a_checker in quality_checkers:
-                    print("CHECKER FUNC NOT IMPLEMENTED!!!")
-                    # training_net.eval()
-                    # a_checker.check_quality(training_net,writer,global_step)
+                    training_net.eval()
+                    a_checker.check_quality(training_net,writer,global_step)
 
         ## 3 save model
         if global_step % SAVE_MODEL_ITR == 0 and global_step != 0:

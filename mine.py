@@ -21,7 +21,7 @@ class Mine:
         # np.random.seed(666)
         self.record_size = origin_param_dim*4
         self.batch_size = train_configs["batch_size"]
-        self.batch_brdf_num = train_configs["batch_brdf_num"]
+        # self.batch_brdf_num = train_configs["batch_brdf_num"]
         self.buffer_size = train_configs["pre_load_buffer_size"]
         # assert self.batch_brdf_num*2 <= self.batch_size,"batch_brdf_num:{} batch_size:{}".format(self.batch_brdf_num,self.batch_size)
 

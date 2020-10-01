@@ -1,6 +1,6 @@
 a = {
-    "albedo":"a",
-    "alcedo":"b",
+    "klbedo":"a",
+    "almedo":"b",
     "aleedo":"c"
 }
 

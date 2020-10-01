@@ -30,7 +30,6 @@ class DIFT_TRAIN_NET(nn.Module):
         self.sample_view_num = args["sample_view_num"]
         self.measurements_length = args["measurements_length"]
         self.batch_size = args["batch_size"]
-        self.batch_brdf_num = args["batch_brdf_num"]
         self.dift_code_len = args["dift_code_len"]
 
         self.lambdas = args["lambdas"]
@@ -106,6 +105,7 @@ class DIFT_TRAIN_NET(nn.Module):
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################
+        E1_loss_map = {}
         if call_type == "train":
             for i,code_key in enumerate(origin_codes_map):
                 dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.partition[code_key][1])
@@ -132,7 +132,7 @@ class DIFT_TRAIN_NET(nn.Module):
                 s_ii_r = D_ii / (eps+D_row_sum)
                 
                 tmp_E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
-                
+                E1_loss_map[code_key+"_loss"] = tmp_E1.item()
                 if i == 0:
                     E1 = tmp_E1*self.partition[code_key][2]
                 else:
@@ -197,8 +197,8 @@ class DIFT_TRAIN_NET(nn.Module):
         #### albedo loss
         #######
         albedo_loss_diff = self.l2_loss_fn(albedo_nn_diff,param_2[:,[5]])
-        albedo_loss_spec = self.l2_loss_fn(albedo_nn_diff,param_2[:,[6]])
-        albedo_loss = albedo_loss_diff+albedo_nn_spec
+        albedo_loss_spec = self.l2_loss_fn(albedo_nn_spec,param_2[:,[6]])
+        albedo_loss = albedo_loss_diff*self.lambdas["albedo_diff"]+albedo_loss_spec*self.lambdas["albedo_spec"]
 
         # if global_step > 1:
         #     exit(0)
@@ -208,18 +208,16 @@ class DIFT_TRAIN_NET(nn.Module):
 
         ### !6 reg loss
         # reg_loss = self.regularizer(self.dift_net)
-
-        total_loss = albedo_loss+E1
+        total_loss = albedo_loss*self.lambdas["albedo"]+E1*self.lambdas["E1"]
 
         loss_log_map = {
+            "albedo_loss":albedo_loss.item(),
             "albedo_loss_diff":albedo_loss_diff.item(),
             "albedo_loss_spec":albedo_loss_spec.item(),
-            # "loss_e1_train_tamer":E1.item(),
-            # "loss_e2_train_tamer":E2.item(),
-            # "loss_normal":0.0,
+            "e1_loss":E1.item(),
             "total":total_loss.item(),
-            # "loss_reg_tamer":reg_loss.item()
         }
+        loss_log_map.update(E1_loss_map)
         return total_loss,loss_log_map
     
     def visualize_quality_terms(self,quality_map):
