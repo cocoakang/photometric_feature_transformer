@@ -100,7 +100,7 @@ class DIFT_TRAIN_NET(nn.Module):
         view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
-        dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(2*batch,diftcodelen)
+        dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,param_2[:,[5]],param_2[:,[6]],True)#(2*batch,diftcodelen)
         dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
         ############################################################################################################################
         ## step 3 compute loss

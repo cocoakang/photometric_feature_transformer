@@ -38,8 +38,8 @@ class DIFT_NET(nn.Module):
 
         x_n = batch_data.reshape(batch_size,self.measurements_length)
         
-        m_no_rhod = x_n / (1e-6 + albedo_diff)
-        m_no_rhos = x_n / (1e-6 + albedo_spec)
+        m_no_rhod = x_n# / (1e-6 + albedo_diff)
+        m_no_rhos = x_n# / (1e-6 + albedo_spec)
         m_ptr = 0
         
         albedo = torch.cat((albedo_diff,albedo_spec),dim=1)#(batchsize,2)
@@ -52,7 +52,7 @@ class DIFT_NET(nn.Module):
         dift_codes_g_diff_global = self.g_diff_global_part(m_no_rhod[:,m_ptr:m_ptr+self.partition["g_diff_global"][0]],view_mat_model_t,view_mat_for_normal_t)
         m_ptr+=self.partition["g_diff_global"][0]
 
-        dift_codes_g_spec = self.g_spec_part(m_no_rhos[:,m_ptr:m_ptr+self.partition["g_spec"][0]])
+        dift_codes_g_spec = self.g_spec_part(m_no_rhos[:,m_ptr:m_ptr+self.partition["g_spec"][0]],view_mat_model_t,view_mat_for_normal_t)
         m_ptr+=self.partition["g_spec"][0]
 
 

@@ -91,10 +91,10 @@ if __name__ == "__main__":
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len,dift_code_len,losslambda
-    partition["albedo"] = (0,3,1.0)
-    partition["g_diff_local"] = (5,4,1.0)
-    partition["g_diff_global"] = (5,4,1e1)
-    partition["g_spec"] = (6,4,1.0)
+    partition["albedo"] = (0,3,0.0)
+    partition["g_diff_local"] = (4,4,0.0)
+    partition["g_diff_global"] = (4,4,1.0)
+    partition["g_spec"] = (4,4,0.0)
 
     train_configs["measurements_length"] = sum([partition[a_key][0] for a_key in partition])
     train_configs["partition"] = partition
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     lambdas = {}
     lambdas["E1"] =1.0
-    lambdas["albedo"] = 10.0
+    lambdas["albedo"] = 0.0
     lambdas["albedo_diff"] = 1.0
     lambdas["albedo_spec"] = 1e-2
     train_configs["lambdas"] = lambdas
