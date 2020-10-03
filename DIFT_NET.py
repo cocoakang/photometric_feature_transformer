@@ -23,7 +23,7 @@ class DIFT_NET(nn.Module):
         self.albedo_part = DIFT_NET_ALBEDO(args,2,args["partition"]["albedo"][1])
         self.g_diff_local_part = DIFT_NET_G_DIFF_LOCAL(args,args["partition"]["g_diff_local"][0],args["partition"]["g_diff_local"][1])
         self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(args,args["partition"]["g_diff_global"][0],args["partition"]["g_diff_global"][1])
-        self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
+        # self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
         
     def forward(self,batch_data,view_mat_model_t,view_mat_for_normal_t,albedo_diff,albedo_spec,return_origin_codes=False):
         '''
@@ -39,7 +39,7 @@ class DIFT_NET(nn.Module):
         x_n = batch_data.reshape(batch_size,self.measurements_length)
         
         m_no_rhod = x_n# / (1e-6 + albedo_diff)
-        m_no_rhos = x_n# / (1e-6 + albedo_spec)
+        # m_no_rhos = x_n# / (1e-6 + albedo_spec)
         m_ptr = 0
         
         albedo = torch.cat((albedo_diff,albedo_spec),dim=1)#(batchsize,2)
@@ -52,11 +52,11 @@ class DIFT_NET(nn.Module):
         dift_codes_g_diff_global = self.g_diff_global_part(m_no_rhod[:,m_ptr:m_ptr+self.partition["g_diff_global"][0]],view_mat_model_t,view_mat_for_normal_t)
         m_ptr+=self.partition["g_diff_global"][0]
 
-        dift_codes_g_spec = self.g_spec_part(m_no_rhos[:,m_ptr:m_ptr+self.partition["g_spec"][0]],view_mat_model_t,view_mat_for_normal_t)
-        m_ptr+=self.partition["g_spec"][0]
+        # dift_codes_g_spec = self.g_spec_part(m_no_rhos[:,m_ptr:m_ptr+self.partition["g_spec"][0]],view_mat_model_t,view_mat_for_normal_t)
+        # m_ptr+=self.partition["g_spec"][0]
 
 
-        dift_codes = torch.cat([dift_codes_albedo,dift_codes_g_diff_local,dift_codes_g_diff_global,dift_codes_g_spec],dim=1)
+        dift_codes = torch.cat([dift_codes_albedo,dift_codes_g_diff_local,dift_codes_g_diff_global],dim=1)
 
         if not return_origin_codes:
             return dift_codes#,torch.zeros(batch_size,3,dtype=torch.float32)
@@ -65,6 +65,6 @@ class DIFT_NET(nn.Module):
                 "albedo" : dift_codes_albedo,
                 "g_diff_local" : dift_codes_g_diff_local,
                 "g_diff_global" : dift_codes_g_diff_global,
-                "g_spec" : dift_codes_g_spec,
+                # "g_spec" : dift_codes_g_spec,
             }
             return dift_codes,origin_codes_map

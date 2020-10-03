@@ -92,9 +92,9 @@ if __name__ == "__main__":
 
     partition = {}#m_len,dift_code_len,losslambda
     partition["albedo"] = (0,3,0.0)
-    partition["g_diff_local"] = (4,4,0.0)
+    partition["g_diff_local"] = (4,4,1.0)
     partition["g_diff_global"] = (4,4,10.0)
-    partition["g_spec"] = (4,4,0.0)
+    # partition["g_spec"] = (4,4,0.0)
 
     train_configs["measurements_length"] = sum([partition[a_key][0] for a_key in partition])
     train_configs["partition"] = partition
@@ -159,20 +159,20 @@ if __name__ == "__main__":
     ###quality checker
     quality_checkers = []
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_gh",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="g_diff_local"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_gh",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="g_diff_local"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
     checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
         train_configs,

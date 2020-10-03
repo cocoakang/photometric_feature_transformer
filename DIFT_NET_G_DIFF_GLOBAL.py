@@ -17,54 +17,6 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
         
         self.dift_part = self.dift_part_f(input_size)
         self.dift_part2 = self.dift_part_f2(32+1*(16+16))
-        # self.dift_part3 = self.dift_part_f2(128+16)
-        # self.view_part = self.view_part_f(2)
-    
-    def view_part_f(self,input_size,name_prefix = "VIEW_"):
-        layer_stack = OrderedDict()
-        
-        layer_count = 0
-
-        output_size=32
-        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
-        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(output_size)
-        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
-        layer_count+=1
-        input_size = output_size
-
-        output_size=64
-        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
-        # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
-        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
-        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
-        layer_count+=1
-        input_size = output_size
-
-        output_size=128
-        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
-        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(output_size)
-        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
-        # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
-        layer_count+=1
-        input_size = output_size
-
-        output_size=128
-        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
-        # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(output_size)
-        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
-        # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
-        layer_count+=1
-        input_size = output_size
-
-        output_size=self.view_code_len
-        layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
-        layer_stack[name_prefix+"LeakyRelu_{}".format(layer_count)] = nn.LeakyReLU(negative_slope=0.2)
-        layer_count+=1
-        input_size = output_size
-
-        layer_stack = nn.Sequential(layer_stack)
-
-        return layer_stack
 
     def dift_part_f(self,input_size,name_prefix = "DIFT_"):
         layer_stack = OrderedDict()
@@ -266,11 +218,11 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
 
         x_n = batch_data.reshape(batch_size,self.measurements_length)
         x_n = torch.nn.functional.normalize(x_n,dim=1)
-        x_n = x_n.reshape(batch_size,-1)
+        # x_n = x_n.reshape(batch_size,-1)
         # x_n = torch.cat([x_n,view_codes],dim=1)
 
         dift_codes = self.dift_part(x_n)
-        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+        # dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
         dift_codes_normal = torch.cat([dift_codes,view_mat_model_t,view_mat_for_normal_t],dim=1)
