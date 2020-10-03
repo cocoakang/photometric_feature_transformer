@@ -20,7 +20,7 @@ import math
 
 MAX_ITR = 5000000
 VALIDATE_ITR = 5
-CHECK_QUALITY_ITR=1000
+CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
 LOG_MODEL_ITR=30000
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     partition = {}#m_len,dift_code_len,losslambda
     partition["albedo"] = (0,3,0.0)
     partition["g_diff_local"] = (4,4,0.0)
-    partition["g_diff_global"] = (4,4,1.0)
+    partition["g_diff_global"] = (4,4,10.0)
     partition["g_spec"] = (4,4,0.0)
 
     train_configs["measurements_length"] = sum([partition[a_key][0] for a_key in partition])
@@ -159,20 +159,20 @@ if __name__ == "__main__":
     ###quality checker
     quality_checkers = []
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_gh",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="g_diff_local"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_gh",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="g_diff_local"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
     checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
         train_configs,
@@ -189,50 +189,50 @@ if __name__ == "__main__":
     )
     quality_checkers.append(checker_uniform_mirror_ball)
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_m",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="albedo"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_m",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="albedo"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_spec",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="g_spec"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_spec",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="g_spec"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_a",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="a"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_a",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="a"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
     #     train_configs,
@@ -291,7 +291,7 @@ if __name__ == "__main__":
             log_loss(writer,loss_log_terms,global_step,False)
             
         ## 2 check quality
-        if global_step % CHECK_QUALITY_ITR == 0:
+        if global_step % CHECK_QUALITY_ITR == 0 or global_step == 1000:
             # print("val queue size:",val_queue.qsize())
             val_data = val_queue.get()
             # val_Semaphore.release()
