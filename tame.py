@@ -91,7 +91,7 @@ if __name__ == "__main__":
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len,dift_code_len,losslambda
-    partition["albedo"] = (0,3,0.0)
+    partition["albedo"] = (0,3,1.0)
     partition["g_diff_local"] = (4,4,1.0)
     partition["g_diff_global"] = (4,4,10.0)
     # partition["g_spec"] = (4,4,0.0)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     lambdas = {}
     lambdas["E1"] =1.0
-    lambdas["albedo"] = 0.0
+    lambdas["albedo"] = 1.0
     lambdas["albedo_diff"] = 1.0
     lambdas["albedo_spec"] = 1e-2
     train_configs["lambdas"] = lambdas
@@ -189,20 +189,20 @@ if __name__ == "__main__":
     )
     quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_m",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="albedo"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_m",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="albedo"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
     #     train_configs,
@@ -234,16 +234,17 @@ if __name__ == "__main__":
     # )
     # quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/textured_ball_1/metadata/",
-    #     "textured_ball_1",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     batch_size=500,
-    #     test_view_num=1
-    # )
-    # quality_checkers.append(checker_textured_ball_1)
+    checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/textured_ball_1/metadata/",
+        "textured_ball_1",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        batch_size=500,
+        test_view_num=1,
+        check_type="albedo"
+    )
+    quality_checkers.append(checker_textured_ball_1)
 
     checker_golden_pig = DIFT_QUALITY_CHECKER(
         train_configs,

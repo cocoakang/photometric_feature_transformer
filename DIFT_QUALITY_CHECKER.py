@@ -208,6 +208,13 @@ class DIFT_QUALITY_CHECKER:
                 view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
 
                 albedo_nn_diff,albedo_nn_spec = dift_trainer.albedo_net(measurements)
+                # if self.test_in_grey:
+                #     albedo_nn_diff = tmp_input_params_tc[:,[5]]
+                #     albedo_nn_spec = tmp_input_params_tc[:,[6]]
+                # else:
+                #     albedo_nn_diff = tmp_input_params_tc[:,5:8].reshape(cur_batch_size*3,1)
+                #     albedo_nn_spec = tmp_input_params_tc[:,8:11].reshape(cur_batch_size*3,1)
+
                 dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
                 
                 if self.check_type == "a":

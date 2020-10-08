@@ -100,7 +100,8 @@ class DIFT_TRAIN_NET(nn.Module):
         view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
-        dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,param_2[:,[5]],param_2[:,[6]],True)#(2*batch,diftcodelen)
+        # dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,param_2[:,[5]],param_2[:,[6]],True)#(2*batch,diftcodelen)
+        dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(2*batch,diftcodelen)
         dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
         ############################################################################################################################
         ## step 3 compute loss
@@ -211,9 +212,9 @@ class DIFT_TRAIN_NET(nn.Module):
         total_loss = albedo_loss*self.lambdas["albedo"]+E1*self.lambdas["E1"]
 
         loss_log_map = {
-            "albedo_loss":albedo_loss.item(),
-            "albedo_loss_diff":albedo_loss_diff.item(),
-            "albedo_loss_spec":albedo_loss_spec.item(),
+            "albedo_value_total":albedo_loss.item(),
+            "albedo_value_diff":albedo_loss_diff.item(),
+            "albedo_value_spec":albedo_loss_spec.item(),
             "e1_loss":E1.item(),
             "total":total_loss.item(),
         }
