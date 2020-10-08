@@ -10,7 +10,7 @@ class ALBEDO_NET(nn.Module):
     def __init__(self,args):
         super(ALBEDO_NET,self).__init__()
     
-        self.measurements_length = args["measurements_length"]
+        self.measurements_length = args["measurements_length_albedo"]
         self.keep_prob = 0.9
         self.share_code_len = 256
         #############construct model

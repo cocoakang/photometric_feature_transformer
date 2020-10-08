@@ -13,7 +13,7 @@ class DIFT_NET(nn.Module):
     def __init__(self,args):
         super(DIFT_NET,self).__init__()
     
-        self.measurements_length = args["measurements_length"]
+        self.measurements_length = args["measurements_length_dift"]
         self.dift_code_len = args["dift_code_len"]
         self.keep_prob = 0.9
         self.partition = args["partition"]

@@ -91,12 +91,14 @@ if __name__ == "__main__":
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len,dift_code_len,losslambda
-    partition["albedo"] = (0,3,1.0)
+    partition["albedo"] = (2,3,1.0)
     partition["g_diff_local"] = (4,4,1.0)
     partition["g_diff_global"] = (4,4,10.0)
     # partition["g_spec"] = (4,4,0.0)
 
     train_configs["measurements_length"] = sum([partition[a_key][0] for a_key in partition])
+    train_configs["measurements_length_albedo"] = partition["albedo"][0]
+    train_configs["measurements_length_dift"] = train_configs["measurements_length"] - partition["albedo"][0]
     train_configs["partition"] = partition
     train_configs["dift_code_len"] = sum([partition[a_key][1] for a_key in partition])
 
@@ -137,10 +139,13 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        # writer = SummaryWriter(comment="learn_l2_dgh{}_dgv{}_dm{}_m{}_3diftnet_3loss".format(args.dift_code_len_gh,args.dift_code_len_gv,args.dift_code_len_m,args.measurement_num))
-        os.makedirs("../log_no_where/",exist_ok=True)
-        os.system("rm -r ../log_no_where/*")
-        writer = SummaryWriter(log_dir="../log_no_where/")
+        writer = SummaryWriter(comment="learn_l2_ma{}_ml{}_mg{}_da{}_dl{}_dg{}".format(
+            partition["albedo"][0],partition["g_diff_local"][0],partition["g_diff_global"][0],
+            partition["albedo"][1],partition["g_diff_local"][1],partition["g_diff_global"][1])
+        )
+        # os.makedirs("../log_no_where/",exist_ok=True)
+        # os.system("rm -r ../log_no_where/*")
+        # writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()

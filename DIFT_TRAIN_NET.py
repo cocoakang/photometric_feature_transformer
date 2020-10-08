@@ -88,10 +88,12 @@ class DIFT_TRAIN_NET(nn.Module):
         #1 first we project every lumitexel to measurements
         input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
         measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
+        measurements_for_albedo = measurements[:,:self.partition["albedo"][0]]
+        measurements_for_dift = measurements[:,self.partition["albedo"][0]:]
         #concatenate measurements
         
         #2 infer albedo using neural network
-        albedo_nn_diff,albedo_nn_spec = self.albedo_net(measurements)#(2*batchsize,1),(2*batchsize,1)
+        albedo_nn_diff,albedo_nn_spec = self.albedo_net(measurements_for_albedo)#(2*batchsize,1),(2*batchsize,1)
 
         view_mat_model = torch_render.rotation_axis(-rotate_theta,self.setup.get_rot_axis_torch(measurements.device))#[2*batch,4,4]
         view_mat_model_t = torch.transpose(view_mat_model,1,2)#[2*batch,4,4]
@@ -101,7 +103,7 @@ class DIFT_TRAIN_NET(nn.Module):
         view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
 
         # dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,param_2[:,[5]],param_2[:,[6]],True)#(2*batch,diftcodelen)
-        dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(2*batch,diftcodelen)
+        dift_codes_full,origin_codes_map = self.dift_net(measurements_for_dift,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(2*batch,diftcodelen)
         dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
         ############################################################################################################################
         ## step 3 compute loss
@@ -212,11 +214,11 @@ class DIFT_TRAIN_NET(nn.Module):
         total_loss = albedo_loss*self.lambdas["albedo"]+E1*self.lambdas["E1"]
 
         loss_log_map = {
-            "albedo_value_total":albedo_loss.item(),
-            "albedo_value_diff":albedo_loss_diff.item(),
-            "albedo_value_spec":albedo_loss_spec.item(),
+            "albedo_value_total_loss":albedo_loss.item(),
+            "albedo_value_diff_loss":albedo_loss_diff.item(),
+            "albedo_value_spec_loss":albedo_loss_spec.item(),
             "e1_loss":E1.item(),
-            "total":total_loss.item(),
+            "total_loss":total_loss.item(),
         }
         loss_log_map.update(E1_loss_map)
         return total_loss,loss_log_map
