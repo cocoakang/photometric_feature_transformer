@@ -138,9 +138,9 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ma{}_ml{}_mg{}_da{}_dl{}_dg{}_new".format(
-            partition["albedo"][0],partition["g_diff_local"][0],partition["g_diff_global"][0],
-            partition["albedo"][1],partition["g_diff_local"][1],partition["g_diff_global"][1])
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_new_nonorm".format(
+            partition["local"],partition["global"][0],dift_code_config["local_albedo"][0],
+            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
