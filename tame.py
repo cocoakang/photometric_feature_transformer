@@ -20,7 +20,7 @@ import math
 
 MAX_ITR = 5000000
 VALIDATE_ITR = 5
-CHECK_QUALITY_ITR=5000
+CHECK_QUALITY_ITR=500
 SAVE_MODEL_ITR=10000
 LOG_MODEL_ITR=30000
 
@@ -90,23 +90,22 @@ if __name__ == "__main__":
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
-    partition = {}#m_len,dift_code_len,losslambda
-    partition["albedo"] = (2,3,1.0)
-    partition["g_diff_local"] = (4,4,1.0)
-    partition["g_diff_global"] = (4,4,10.0)
-    # partition["g_spec"] = (4,4,0.0)
+    partition = {}#m_len
+    partition["local"] = 3
+    partition["global"] = 3
+ 
+    dift_code_config = {}#dift_code_len,losslambda
+    dift_code_config["local_albedo"] = (3,1.0)
+    dift_code_config["local_noalbedo"] = (4,1.0)
+    dift_code_config["global"] = (3,10.0)
 
-    train_configs["measurements_length"] = sum([partition[a_key][0] for a_key in partition])
-    train_configs["measurements_length_albedo"] = partition["albedo"][0]
-    train_configs["measurements_length_dift"] = train_configs["measurements_length"] - partition["albedo"][0]
+    train_configs["measurements_length"] = sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
-    train_configs["dift_code_len"] = sum([partition[a_key][1] for a_key in partition])
+    train_configs["dift_code_config"] = dift_code_config
+    train_configs["dift_code_len"] = sum([dift_code_config[a_key][0] for a_key in dift_code_config])
 
     lambdas = {}
     lambdas["E1"] =1.0
-    lambdas["albedo"] = 1.0
-    lambdas["albedo_diff"] = 1.0
-    lambdas["albedo_spec"] = 1e-2
     train_configs["lambdas"] = lambdas
 
     train_configs["data_root"] = args.data_root
@@ -139,7 +138,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ma{}_ml{}_mg{}_da{}_dl{}_dg{}".format(
+        writer = SummaryWriter(comment="learn_l2_ma{}_ml{}_mg{}_da{}_dl{}_dg{}_new".format(
             partition["albedo"][0],partition["g_diff_local"][0],partition["g_diff_global"][0],
             partition["albedo"][1],partition["g_diff_local"][1],partition["g_diff_global"][1])
         )
@@ -175,7 +174,7 @@ if __name__ == "__main__":
         spec_albedo=3.0,
         batch_size=500,
         test_view_num=1,
-        check_type="g_diff_local"
+        check_type="local_noalbedo"
     )
     quality_checkers.append(checker_uniform_mirror_ball)
 
@@ -190,7 +189,7 @@ if __name__ == "__main__":
         spec_albedo=3.0,
         batch_size=500,
         test_view_num=1,
-        check_type="g_diff_global"
+        check_type="global"
     )
     quality_checkers.append(checker_uniform_mirror_ball)
 
@@ -205,39 +204,9 @@ if __name__ == "__main__":
         spec_albedo=3.0,
         batch_size=500,
         test_view_num=1,
-        check_type="albedo"
+        check_type="local_albedo"
     )
     quality_checkers.append(checker_uniform_mirror_ball)
-
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_spec",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="g_spec"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
-
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_a",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="a"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
 
     checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
         train_configs,
@@ -247,7 +216,7 @@ if __name__ == "__main__":
         torch.device("cuda:{}".format(args.checker_gpu)),
         batch_size=500,
         test_view_num=1,
-        check_type="albedo"
+        check_type="local_albedo"
     )
     quality_checkers.append(checker_textured_ball_1)
 
@@ -310,6 +279,7 @@ if __name__ == "__main__":
             #check with real(real fake) data
             with torch.no_grad():
                 for a_checker in quality_checkers:
+                    print("========")
                     training_net.eval()
                     a_checker.check_quality(training_net,writer,global_step)
 

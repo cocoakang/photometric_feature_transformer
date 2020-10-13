@@ -31,8 +31,7 @@ class DIFT_QUALITY_CHECKER:
         ########################################
         self.setup = training_configs["setup_input"]
         self.check_type = check_type
-        self.dift_code_len = training_configs["dift_code_len"] if check_type == "a" else training_configs["partition"][check_type][1]
-        self.albedo_m_len = training_configs["partition"]["albedo"][0]
+        self.dift_code_len = training_configs["dift_code_len"] if check_type == "a" else training_configs["dift_code_config"][check_type][0]
         self.checker_name = checker_name
         self.batch_size = batch_size
         self.test_device = test_device
@@ -193,9 +192,6 @@ class DIFT_QUALITY_CHECKER:
                 ###STEP 2 transefer lumi to dift codes
                 #################################
                 measurements = dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
-                measurements_for_albedo = measurements[:,:self.albedo_m_len]
-                measurements_for_dift = measurements[:,self.albedo_m_len:]
-
                 cossin = torch.cat(
                         [
                             torch.sin(sampled_rotate_angles),
@@ -210,7 +206,7 @@ class DIFT_QUALITY_CHECKER:
                 view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
                 view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
 
-                albedo_nn_diff,albedo_nn_spec = dift_trainer.albedo_net(measurements_for_albedo)
+                # albedo_nn_diff,albedo_nn_spec = dift_trainer.albedo_net(measurements_for_albedo)
                 # if self.test_in_grey:
                 #     albedo_nn_diff = tmp_input_params_tc[:,[5]]
                 #     albedo_nn_spec = tmp_input_params_tc[:,[6]]
@@ -218,7 +214,7 @@ class DIFT_QUALITY_CHECKER:
                 #     albedo_nn_diff = tmp_input_params_tc[:,5:8].reshape(cur_batch_size*3,1)
                 #     albedo_nn_spec = tmp_input_params_tc[:,8:11].reshape(cur_batch_size*3,1)
 
-                dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements_for_dift,view_mat_model_t,view_mat_for_normal_t,albedo_nn_diff,albedo_nn_spec,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
                 
                 if self.check_type == "a":
                     dift_codes = dift_codes_full
