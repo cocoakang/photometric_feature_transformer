@@ -139,7 +139,7 @@ if __name__ == "__main__":
     ##########################################
     if args.log_file_name == "":
         writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_new_nonorm".format(
-            partition["local"],partition["global"][0],dift_code_config["local_albedo"][0],
+            partition["local"],partition["global"],dift_code_config["local_albedo"][0],
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
         # os.makedirs("../log_no_where/",exist_ok=True)
