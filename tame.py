@@ -20,7 +20,7 @@ import math
 
 MAX_ITR = 5000000
 VALIDATE_ITR = 5
-CHECK_QUALITY_ITR=500
+CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
 LOG_MODEL_ITR=30000
 
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_new_nonorm".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_baseline".format(
             partition["local"],partition["global"],dift_code_config["local_albedo"][0],
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
