@@ -21,7 +21,7 @@ class DIFT_NET(nn.Module):
         #############construct model
         input_size = self.measurements_length*1#+self.view_code_len
         
-        self.albedo_part = DIFT_NET_ALBEDO(args,args["partition"]["local"],args["dift_code_config"]["local_albedo"][0])
+        # self.albedo_part = DIFT_NET_ALBEDO(args,args["partition"]["local"],args["dift_code_config"]["local_albedo"][0])
         self.g_diff_local_part = DIFT_NET_G_DIFF_LOCAL(args,args["partition"]["local"],args["dift_code_config"]["local_noalbedo"][0])
         self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(args,args["partition"]["global"],args["dift_code_config"]["global"][0])
         # self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
@@ -41,7 +41,7 @@ class DIFT_NET(nn.Module):
         
         m_ptr = 0
     
-        dift_codes_albedo = self.albedo_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
+        # dift_codes_albedo = self.albedo_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
 
         dift_codes_g_diff_local = self.g_diff_local_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
         m_ptr += self.partition["local"]
@@ -53,14 +53,14 @@ class DIFT_NET(nn.Module):
         # m_ptr+=self.partition["g_spec"][0]
 
 
-        dift_codes = torch.cat([dift_codes_albedo,dift_codes_g_diff_local,dift_codes_g_diff_global],dim=1)
+        dift_codes = torch.cat([dift_codes_g_diff_local,dift_codes_g_diff_global],dim=1)
         dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         if not return_origin_codes:
             return dift_codes#,torch.zeros(batch_size,3,dtype=torch.float32)
         else:
             origin_codes_map = {
-                "local_albedo" : dift_codes_albedo,
+                # "local_albedo" : dift_codes_albedo,
                 "local_noalbedo" : dift_codes_g_diff_local,
                 "global" : dift_codes_g_diff_global,
                 # "g_spec" : dift_codes_g_spec,

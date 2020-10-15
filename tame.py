@@ -60,9 +60,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=2)
+    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--checker_gpu",type=int,default=2)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -95,8 +95,8 @@ if __name__ == "__main__":
     partition["global"] = 3
  
     dift_code_config = {}#dift_code_len,losslambda
-    dift_code_config["local_albedo"] = (3,1.0)
-    dift_code_config["local_noalbedo"] = (4,1.0)
+    # dift_code_config["local_albedo"] = (3,1.0)
+    dift_code_config["local_noalbedo"] = (7,1.0)
     dift_code_config["global"] = (3,10.0)
 
     train_configs["measurements_length"] = sum([partition[a_key] for a_key in partition])
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,55111)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,5511)
     train_mine.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
     val_mine.start()
@@ -138,8 +138,8 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_net2nonorm".format(
-            partition["local"],partition["global"],dift_code_config["local_albedo"][0],
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_removenet1".format(
+            partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
         # os.makedirs("../log_no_where/",exist_ok=True)
@@ -193,32 +193,32 @@ if __name__ == "__main__":
     )
     quality_checkers.append(checker_uniform_mirror_ball)
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_m",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="local_albedo"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_m",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="local_albedo"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
-    checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/textured_ball_1/metadata/",
-        "textured_ball_1",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        batch_size=500,
-        test_view_num=1,
-        check_type="local_albedo"
-    )
-    quality_checkers.append(checker_textured_ball_1)
+    # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/textured_ball_1/metadata/",
+    #     "textured_ball_1",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="local_albedo"
+    # )
+    # quality_checkers.append(checker_textured_ball_1)
 
     checker_golden_pig = DIFT_QUALITY_CHECKER(
         train_configs,
