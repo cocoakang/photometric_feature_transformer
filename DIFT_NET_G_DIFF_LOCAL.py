@@ -174,7 +174,7 @@ class DIFT_NET_G_DIFF_LOCAL(nn.Module):
         device = batch_data.device
         
         x_n = batch_data.reshape(batch_size,self.measurements_length)
-        x_n = torch.nn.functional.normalize(x_n,dim=1)
+        # x_n = torch.nn.functional.normalize(x_n,dim=1)
         
         dift_codes = self.dift_part(x_n)
         dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
