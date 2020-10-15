@@ -26,16 +26,16 @@ class Mine:
         # assert self.batch_brdf_num*2 <= self.batch_size,"batch_brdf_num:{} batch_size:{}".format(self.batch_brdf_num,self.batch_size)
 
         self.setup_input = train_configs["setup_input"]
-        self.sample_view_num = train_configs["sample_view_num"]
+        # self.sample_view_num = train_configs["sample_view_num"]
 
         self.rendering_device = train_configs["rendering_device"]
 
-        self.sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=self.sample_view_num,endpoint=False)#[self.sample_view_num]
-        self.sampled_rotate_angles_np = np.expand_dims(self.sampled_rotate_angles_np,axis=0)
-        self.sampled_rotate_angles_np = np.repeat(self.sampled_rotate_angles_np,self.batch_size,axis=0)
-        self.sampled_rotate_angles_np = self.sampled_rotate_angles_np.astype(np.float32)
-        self.sampled_rotate_angles_tc = torch.from_numpy(self.sampled_rotate_angles_np).to(self.rendering_device)
-        self.sampled_rotate_angles_tc = self.sampled_rotate_angles_tc.reshape(self.batch_size*self.sample_view_num,1)#(batchsize*sample_view_num,1)
+        # self.sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=self.sample_view_num,endpoint=False)#[self.sample_view_num]
+        # self.sampled_rotate_angles_np = np.expand_dims(self.sampled_rotate_angles_np,axis=0)
+        # self.sampled_rotate_angles_np = np.repeat(self.sampled_rotate_angles_np,self.batch_size,axis=0)
+        # self.sampled_rotate_angles_np = self.sampled_rotate_angles_np.astype(np.float32)
+        # self.sampled_rotate_angles_tc = torch.from_numpy(self.sampled_rotate_angles_np).to(self.rendering_device)
+        # self.sampled_rotate_angles_tc = self.sampled_rotate_angles_tc.reshape(self.batch_size*self.sample_view_num,1)#(batchsize*sample_view_num,1)
 
         self.name = name
         if self.name == "train":
@@ -129,6 +129,8 @@ class Mine:
         input_params = torch.from_numpy(tmp_params).to(self.rendering_device)
         input_positions = torch.from_numpy(new_positions[:,:3]).to(self.rendering_device)
 
+        chossed_roate_angles = np.random.uniform(0.0,math.pi*2.0,[self.batch_size,2]).astype(np.float32)
+        chossed_roate_angles = torch.from_numpy(chossed_roate_angles).to(self.rendering_device)
         ##################################################################
         ###adjust position here to ensure at least two views are visible
         ##################################################################
@@ -145,11 +147,11 @@ class Mine:
             # normal = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
             normal = torch_render.back_full_octa_map(n2d)#(batch,3)
 
-            tmp_normal = torch.unsqueeze(normal,dim=1).repeat(1,self.sample_view_num,1).reshape(self.batch_size*self.sample_view_num,3)
-            tmp_position = torch.unsqueeze(input_positions,dim=1).repeat(1,self.sample_view_num,1).reshape(self.batch_size*self.sample_view_num,3)
-            tmp_rotate_theta = self.sampled_rotate_angles_tc.clone()
+            tmp_normal = torch.unsqueeze(normal,dim=1).repeat(1,2,1).reshape(self.batch_size*2,3)
+            tmp_position = torch.unsqueeze(input_positions,dim=1).repeat(1,2,1).reshape(self.batch_size*2,3)
+            tmp_rotate_theta = chossed_roate_angles.clone().reshape(self.batch_size*2,1)
             wo_dot_n = torch_render.compute_wo_dot_n(self.setup_input,tmp_position,tmp_rotate_theta,tmp_normal,self.setup_input.get_cam_pos_torch(self.rendering_device))#(remain*sampleviewnum,1)
-            wo_dot_n = wo_dot_n.reshape(self.batch_size,self.sample_view_num)
+            wo_dot_n = wo_dot_n.reshape(self.batch_size,2)
             tmp_visible_flag = wo_dot_n > 0.0
             visible_num = torch.sum(torch.where(tmp_visible_flag,torch.ones_like(wo_dot_n),torch.zeros_like(wo_dot_n)),dim=1)
             invalid_idxes = torch.where(visible_num < 2)[0]
@@ -163,18 +165,18 @@ class Mine:
         ##################################################################
         ###select two visible view
         ##################################################################
-        choosed_idx_x = np.stack([np.array(range(self.batch_size)),np.array(range(self.batch_size))],axis=1).reshape([-1])
-        mask_matrix = tmp_visible_flag.cpu().numpy()
-        try:
-            choosed_idx = np.stack([np.random.choice(np.where(mask_matrix[i])[0],size=2,replace=False) for i in range(self.batch_size)]).reshape([-1])
-        except BaseException as e:
-            print(e)
-            input_params.cpu().numpy().astype(np.float32).tofile("error_param.bin")
-            input_positions.cpu().numpy().astype(np.float32).tofile("error_pos.bin")
-            exit()
+        # choosed_idx_x = np.stack([np.array(range(self.batch_size)),np.array(range(self.batch_size))],axis=1).reshape([-1])
+        # mask_matrix = tmp_visible_flag.cpu().numpy()
+        # try:
+        #     choosed_idx = np.stack([np.random.choice(np.where(mask_matrix[i])[0],size=2,replace=False) for i in range(self.batch_size)]).reshape([-1])
+        # except BaseException as e:
+        #     print(e)
+        #     input_params.cpu().numpy().astype(np.float32).tofile("error_param.bin")
+        #     input_positions.cpu().numpy().astype(np.float32).tofile("error_pos.bin")
+        #     exit()
 
-        chossed_roate_angles = np.reshape(self.sampled_rotate_angles_np[choosed_idx_x,choosed_idx],[self.batch_size,2])
-        chossed_roate_angles = torch.from_numpy(chossed_roate_angles).to(self.rendering_device)
+        # chossed_roate_angles = np.reshape(self.sampled_rotate_angles_np[choosed_idx_x,choosed_idx],[self.batch_size,2])
+        # chossed_roate_angles = torch.from_numpy(chossed_roate_angles).to(self.rendering_device)
 
         #add brdf training samples
         # input_positions[self.batch_brdf_num*1:self.batch_brdf_num*2] = input_positions[self.batch_brdf_num*0:self.batch_brdf_num*1]

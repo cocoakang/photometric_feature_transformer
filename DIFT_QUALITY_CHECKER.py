@@ -40,7 +40,7 @@ class DIFT_QUALITY_CHECKER:
         self.test_in_grey = test_in_grey
         os.makedirs(self.log_dir,exist_ok=True)
 
-        self.sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=training_configs["sample_view_num"],endpoint=False)
+        self.sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=training_configs["sample_view_num_whentest"],endpoint=False)
         self.sampled_rotate_angles_np = np.expand_dims(self.sampled_rotate_angles_np,axis=0).astype(np.float32)#(1,sampleviewnum)
 
         self.RENDER_SCALAR = training_configs["RENDER_SCALAR"]

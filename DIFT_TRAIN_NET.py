@@ -27,7 +27,7 @@ class DIFT_TRAIN_NET(nn.Module):
         ##parse configuration                ###
         ########################################
         self.training_device = args["training_device"]
-        self.sample_view_num = args["sample_view_num"]
+        # self.sample_view_num = args["sample_view_num"]
         self.measurements_length = args["measurements_length"]
         self.batch_size = args["batch_size"]
         self.dift_code_len = args["dift_code_len"]

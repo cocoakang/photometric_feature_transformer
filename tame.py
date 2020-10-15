@@ -60,9 +60,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=2)
-    parser.add_argument("--rendering_gpu",type=int,default=2)
-    parser.add_argument("--checker_gpu",type=int,default=2)
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     train_configs = {}
     train_configs["rendering_device"] = torch.device("cuda:{}".format(args.rendering_gpu))
     train_configs["training_device"] = torch.device("cuda:{}".format(args.training_gpu))
-    train_configs["sample_view_num"] = 24
+    train_configs["sample_view_num_whentest"] = 24
     train_configs["lumitexel_downsample_rate"] = 1
     train_configs["lumitexel_length"] = 24576 // train_configs["lumitexel_downsample_rate"] // train_configs["lumitexel_downsample_rate"]
     train_configs["noise_stddev"] = 0.01
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,5511)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,551721)
     train_mine.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
     val_mine.start()
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_removenet1".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_continuousangle".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
