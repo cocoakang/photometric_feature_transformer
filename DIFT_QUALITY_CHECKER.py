@@ -199,12 +199,12 @@ class DIFT_QUALITY_CHECKER:
                         ],dim=1
                     )
                 
-                view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(self.test_device))#[2*batch,4,4]
-                view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
-                view_mat_model_t = view_mat_model_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_model_t.reshape(cur_batch_size*3,16)
-                view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
-                view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
-                view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
+                # view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(self.test_device))#[2*batch,4,4]
+                # view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
+                # view_mat_model_t = view_mat_model_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_model_t.reshape(cur_batch_size*3,16)
+                # view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
+                # view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
+                # view_mat_for_normal_t = view_mat_for_normal_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_for_normal_t.reshape(cur_batch_size*3,16)
 
                 # albedo_nn_diff,albedo_nn_spec = dift_trainer.albedo_net(measurements_for_albedo)
                 # if self.test_in_grey:
@@ -214,7 +214,7 @@ class DIFT_QUALITY_CHECKER:
                 #     albedo_nn_diff = tmp_input_params_tc[:,5:8].reshape(cur_batch_size*3,1)
                 #     albedo_nn_spec = tmp_input_params_tc[:,8:11].reshape(cur_batch_size*3,1)
 
-                dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements,cossin,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
                 
                 if self.check_type == "a":
                     dift_codes = dift_codes_full

@@ -11,12 +11,13 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
     
         self.measurements_length = measurements_length
         self.dift_code_len = dift_code_len
+        self.internal_code_len = 4
         self.keep_prob = 0.9
         #############construct model
         input_size = self.measurements_length*1#+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
-        self.dift_part2 = self.dift_part_f2(32+1*(16+16))
+        self.dift_part2 = self.dift_part_f2(self.internal_code_len+1*4)
 
     def dift_part_f(self,input_size,name_prefix = "DIFT_"):
         layer_stack = OrderedDict()
@@ -153,7 +154,7 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
         layer_count+=1
         input_size = output_size
 
-        output_size=32
+        output_size=self.internal_code_len
         # layer_stack[name_prefix+"BN_{}".format(layer_count)] = nn.BatchNorm1d(input_size)
         # layer_stack[name_prefix+"Dropout_{}".format(layer_count)] = nn.Dropout(1-self.keep_prob)
         layer_stack[name_prefix+"Linear_{}".format(layer_count)] = nn.Linear(input_size,output_size)
@@ -204,7 +205,7 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
 
         return layer_stack
 
-    def forward(self,batch_data,view_mat_model_t,view_mat_for_normal_t):
+    def forward(self,batch_data,cossin):
         '''
         batch_data=(batch_size,sample_view_num,m_len,1)
         view_ids_cossin = (batch_size,2)
@@ -225,7 +226,7 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
         # dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
-        dift_codes_normal = torch.cat([dift_codes,view_mat_model_t,view_mat_for_normal_t],dim=1)
+        dift_codes_normal = torch.cat([dift_codes,cossin,1-cossin],dim=1)
         # dift_codes_pos = nn.functional.sigmoid(self.dift_part2(dift_codes_pos))
         dift_codes_normal = self.dift_part2(dift_codes_normal)
         dift_codes_normal = torch.nn.functional.normalize(dift_codes_normal,dim=1)

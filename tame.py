@@ -20,7 +20,7 @@ import math
 
 MAX_ITR = 5000000
 VALIDATE_ITR = 5
-CHECK_QUALITY_ITR=5000
+CHECK_QUALITY_ITR=500
 SAVE_MODEL_ITR=10000
 LOG_MODEL_ITR=30000
 
@@ -60,9 +60,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,551721)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,5521721)
     train_mine.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
     val_mine.start()
@@ -138,13 +138,13 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_continuousangle".format(
-            partition["local"],partition["global"],0,
-            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
-        )
-        # os.makedirs("../log_no_where/",exist_ok=True)
-        # os.system("rm -r ../log_no_where/*")
-        # writer = SummaryWriter(log_dir="../log_no_where/")
+        # writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_continuousangle".format(
+        #     partition["local"],partition["global"],0,
+        #     dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
+        # )
+        os.makedirs("../log_no_where/",exist_ok=True)
+        os.system("rm -r ../log_no_where/*")
+        writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()

@@ -26,11 +26,10 @@ class DIFT_NET(nn.Module):
         self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(args,args["partition"]["global"],args["dift_code_config"]["global"][0])
         # self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
         
-    def forward(self,batch_data,view_mat_model_t,view_mat_for_normal_t,return_origin_codes=False):
+    def forward(self,batch_data,cossin,return_origin_codes=False):
         '''
         batch_data=(batch_size,sample_view_num,m_len,1)
-        view_mat_model_t = (batch_size,16)
-        view_mat_for_normal_t = (batch_size,16)
+        cossin = (batch_size,2)
         albedo_diff = (batch_size,1)
         albedo_spec = (batch_size,1)
         '''
@@ -46,7 +45,7 @@ class DIFT_NET(nn.Module):
         dift_codes_g_diff_local = self.g_diff_local_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
         m_ptr += self.partition["local"]
 
-        dift_codes_g_diff_global = self.g_diff_global_part(x_n[:,m_ptr:m_ptr+self.partition["global"]],view_mat_model_t,view_mat_for_normal_t)
+        dift_codes_g_diff_global = self.g_diff_global_part(x_n[:,m_ptr:m_ptr+self.partition["global"]],cossin)
         m_ptr+=self.partition["global"]
 
         # dift_codes_g_spec = self.g_spec_part(m_no_rhos[:,m_ptr:m_ptr+self.partition["g_spec"][0]],view_mat_model_t,view_mat_for_normal_t)
