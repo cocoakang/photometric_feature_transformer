@@ -119,7 +119,7 @@ if __name__ == "__main__":
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(10)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,5521721)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,51721)
     train_mine.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
     val_mine.start()
@@ -138,13 +138,13 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        # writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_continuousangle".format(
-        #     partition["local"],partition["global"],0,
-        #     dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
-        # )
-        os.makedirs("../log_no_where/",exist_ok=True)
-        os.system("rm -r ../log_no_where/*")
-        writer = SummaryWriter(log_dir="../log_no_where/")
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_sincos_only".format(
+            partition["local"],partition["global"],0,
+            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
+        )
+        # os.makedirs("../log_no_where/",exist_ok=True)
+        # os.system("rm -r ../log_no_where/*")
+        # writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
