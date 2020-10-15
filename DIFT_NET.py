@@ -54,6 +54,7 @@ class DIFT_NET(nn.Module):
 
 
         dift_codes = torch.cat([dift_codes_albedo,dift_codes_g_diff_local,dift_codes_g_diff_global],dim=1)
+        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         if not return_origin_codes:
             return dift_codes#,torch.zeros(batch_size,3,dtype=torch.float32)
