@@ -10,7 +10,6 @@ TORCH_RENDER_PATH="../../../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
 import torch_render
 from DIFT_NET import DIFT_NET
-from DIFT_NET_m import DIFT_NET_M
 
 class DIFT_NET_inuse(nn.Module):
     def __init__(self,args,setup):
@@ -20,21 +19,30 @@ class DIFT_NET_inuse(nn.Module):
         ########################################
         
         self.measurement_len = args.measurement_len
-        self.dift_code_len = args.dift_code_len_g+args.dift_code_len_m
         self.setup = setup
 
+        partition = {
+            "local":3,
+            "global":3
+        }
+
+        dift_code_config = {
+            "local_noalbedo":(7,-1.0),
+            "global":(3,-1.0)
+        }
+
         training_configs = {
+            "partition": partition,
+            "dift_code_config" : dift_code_config,
             "measurements_length" : args.measurement_len,
-            "dift_code_len_g" : args.dift_code_len_g,
-            "dift_code_len_m" : args.dift_code_len_m,
-            "view_code_len" : args.view_code_len
+            "dift_code_len" : 10
         }
 
         ########################################
         ##construct net                      ###
         ########################################
         self.dift_net = DIFT_NET(training_configs)
-        self.dift_net_m = DIFT_NET_M(training_configs)
+        # self.dift_net_m = DIFT_NET_M(training_configs)
 
     def forward(self,batch_data,sampled_rotate_angles):
         '''
@@ -49,15 +57,17 @@ class DIFT_NET_inuse(nn.Module):
                 ],dim=1
             )
         
-        view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(batch_data.device))#[2*batch,4,4]
-        view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
-        view_mat_model_t = view_mat_model_t.reshape(batch_size,16)
-        view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
-        view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
-        view_mat_for_normal_t = view_mat_for_normal_t.reshape(batch_size,16)
+        # view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(batch_data.device))#[2*batch,4,4]
+        # view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
+        # view_mat_model_t = view_mat_model_t.reshape(batch_size,16)
+        # view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
+        # view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
+        # view_mat_for_normal_t = view_mat_for_normal_t.reshape(batch_size,16)
 
-        infered_dift_codes_g = self.dift_net(batch_data,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,3)
-        infered_dift_codes_m = self.dift_net_m(batch_data,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,3)
-        infered_dift_codes = torch.cat([infered_dift_codes_g,infered_dift_codes_m],dim=1)
+        # infered_dift_codes_g = self.dift_net(batch_data,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,3)
+        # infered_dift_codes_m = self.dift_net_m(batch_data,cossin,view_mat_model_t,view_mat_for_normal_t)#(batch,3)
+        # infered_dift_codes = torch.cat([infered_dift_codes_g,infered_dift_codes_m],dim=1)
+
+        infered_dift_codes = self.dift_net(batch_data,cossin)
 
         return infered_dift_codes
