@@ -98,8 +98,8 @@ if __name__ == "__main__":
  
     dift_code_config = {}#dift_code_len,losslambda
     # dift_code_config["local_albedo"] = (3,1.0)
-    dift_code_config["local_noalbedo"] = (7,1.0)
-    dift_code_config["global"] = (3,10.0)
+    dift_code_config["local_noalbedo"] = (5,1.0)
+    dift_code_config["global"] = (5,10.0)
 
     train_configs["measurements_length"] = sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     val_queue_mine_v = Queue(3)
     val_queue_mine_h = Queue(3)
     val_queue_mine_a = Queue(3)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,51721)
+    train_mine = Mine_Pro(train_configs,"train",train_queue,None,5721)
     train_mine.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
     val_mine.start()
@@ -163,13 +163,13 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_sincos_only_LDCcriteria".format(
-            partition["local"],partition["global"],0,
-            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
-        )
-        # os.makedirs("../log_no_where/",exist_ok=True)
-        # os.system("rm -r ../log_no_where/*")
-        # writer = SummaryWriter(log_dir="../log_no_where/")
+        # writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_sincos_only_LDCcriteria".format(
+        #     partition["local"],partition["global"],0,
+        #     dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
+        # )
+        os.makedirs("../log_no_where/",exist_ok=True)
+        os.system("rm -r ../log_no_where/*")
+        writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
