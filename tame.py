@@ -24,8 +24,10 @@ CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
 LOG_MODEL_ITR=30000
 
-def log_loss(writer,loss_terms,global_step,is_training):
+def log_loss(writer,loss_terms,global_step,is_training,post_fix=""):
     train_val_postfix = "_train" if is_training else "_val"
+    if not is_training:
+        train_val_postfix = "_"+post_fix+train_val_postfix
 
     for a_key in loss_terms:
         if "loss_e1_train_tamer" in a_key and is_training:
@@ -60,9 +62,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -118,10 +120,33 @@ if __name__ == "__main__":
     # train_Semaphore = Semaphore(100)
     train_queue = Queue(25)
     # val_Semaphore = Semaphore(50)
-    val_queue = Queue(10)
+    val_queue = Queue(3)
+    val_queue_mine_v = Queue(3)
+    val_queue_mine_h = Queue(3)
+    val_queue_mine_a = Queue(3)
     train_mine = Mine_Pro(train_configs,"train",train_queue,None,51721)
     train_mine.start()
-    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831)
+    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
+    val_mine.start()
+
+    tmp_noise_config = {
+        "position" : 2,
+        "frame_normal_v" : 10.0,
+        "frame_normal_h" : 50.0,
+        "theta" : 0.1,
+        "axay" : 0.1,
+        "pd" : 0.1,
+        "ps" : 0.1
+    }
+    val_mine = Mine_Pro(train_configs,"val",val_queue_mine_v,None,992831,tmp_noise_config)
+    val_mine.start()
+    tmp_noise_config["frame_normal_v"] = 50.0
+    tmp_noise_config["frame_normal_h"] = 10.0
+    val_mine = Mine_Pro(train_configs,"val",val_queue_mine_h,None,992831,tmp_noise_config)
+    val_mine.start()
+    tmp_noise_config["frame_normal_v"] = 50.0
+    tmp_noise_config["frame_normal_h"] = 50.0
+    val_mine = Mine_Pro(train_configs,"val",val_queue_mine_a,None,992831,tmp_noise_config)
     val_mine.start()
     
     ##########################################
@@ -138,7 +163,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_sincos_only".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_sincos_only_LDCcriteria".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -257,13 +282,25 @@ if __name__ == "__main__":
         ## 1 validate
         if global_step % VALIDATE_ITR == 0:
             # print("val queue size:",val_queue.qsize())
-            val_data = val_queue.get()
+            val_itr = global_step // VALIDATE_ITR
+            if val_itr % 4 == 0:
+                val_data = val_queue.get()
+                post_fix = "general"
+            elif val_itr % 4 == 1:
+                val_data = val_queue_mine_h.get()
+                post_fix = "LDCh"
+            elif val_itr % 4 == 2:
+                val_data = val_queue_mine_v.get()
+                post_fix = "LDCv"
+            elif val_itr % 4 == 3:
+                val_data = val_queue_mine_a.get()
+                post_fix = "LDCa"
             # val_Semaphore.release()
             # print("got val")
             with torch.no_grad():
                 training_net.eval()
                 _,loss_log_terms = training_net(val_data,global_step=global_step,call_type="val")
-            log_loss(writer,loss_log_terms,global_step,False)
+            log_loss(writer,loss_log_terms,global_step,False,post_fix=post_fix)
             
         ## 2 check quality
         if global_step % CHECK_QUALITY_ITR == 0 or global_step == 1000:

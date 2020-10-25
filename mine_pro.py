@@ -5,6 +5,7 @@ import torch
 import random
 from multiprocessing import Process
 from mine import Mine
+from mine_hard import Mine_Hard
 import time
 import sys
 TORCH_RENDER_PATH="../torch_renderer/"
@@ -14,11 +15,17 @@ from multiview_renderer_mt import Multiview_Renderer
 from torch_render import Setup_Config
 from generate_training_data import compute_loss_weight
 
-def run(args,name,setup,RENDER_SCALAR,output_queue,seed):
+def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
     np.random.seed(seed)
     # torch.random.manual_seed(seed+1)
     # random.seed(seed+2)
-    mine = Mine(args,name)
+    if name == "train":
+        mine = Mine(args,name)
+    elif name == "val":
+        if noise_config is None:
+            mine = Mine(args,name)
+        else:
+            mine = Mine_Hard(args,name,noise_config)
     print("build mine done.")
     #######################################
     # define rendering module           ###
@@ -118,7 +125,7 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed):
 
 
 class Mine_Pro():
-    def __init__(self,args,name,output_queue,output_sph,seed):
+    def __init__(self,args,name,output_queue,output_sph,seed,noise_config=None):
         print("[MINE PRO {}] creating mine...".format(name))
         ##########
         ##parse arguments
@@ -128,6 +135,7 @@ class Mine_Pro():
         self.output_queue = output_queue
         self.setup = self.args["setup_input"]
         self.seed = seed
+        self.noise_config = noise_config
         
         #######################################
         #loading setup configuration        ###
@@ -148,7 +156,8 @@ class Mine_Pro():
             self.setup,
             self.RENDER_SCALAR,
             self.output_queue,
-            self.seed
+            self.seed,
+            self.noise_config
         ),daemon=True)
         # self.generator.setDaemon(True)
         self.generator.start()
