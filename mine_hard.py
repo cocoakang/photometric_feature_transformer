@@ -174,7 +174,7 @@ class Mine_Hard:
 
         #about v
         origin_phi = torch.asin(normal[:,2])#(batchsize,)
-        disturbed_phi =  torch.clamp(origin_phi+frame_noise[:,1],-math.pi*0.5,math.pi*0.5)#(batchsize,)
+        disturbed_phi =  origin_phi+frame_noise[:,1]#(batchsize,)
         disturbed_z = torch.sin(disturbed_phi)#(batchsize,)
         #compute new xy
         disturbed_normal_xylen = torch.abs(torch.cos(disturbed_phi))#(batchsize,)
