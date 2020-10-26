@@ -62,11 +62,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
-    parser.add_argument("--pretrained_model_pan",type=str,default="")
+    parser.add_argument("--pretrained_model_pan",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct26_14-42-32_Kang-Deep-Learninglearn_l2_ml3_mg3_dla0_dlna5_dg5_basenet_gd/models/model_state_90000.pkl")
 
     args = parser.parse_args()
     
@@ -89,6 +89,7 @@ if __name__ == "__main__":
     train_configs["lumitexel_length"] = 24576 // train_configs["lumitexel_downsample_rate"] // train_configs["lumitexel_downsample_rate"]
     train_configs["noise_stddev"] = 0.01
     train_configs["setup_input"] = setup_input
+    train_configs["training_mode"] = "pretrain" if args.pretrained_model_pan == "" else "finetune"
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
@@ -124,20 +125,26 @@ if __name__ == "__main__":
     val_queue_mine_v = Queue(3)
     val_queue_mine_h = Queue(3)
     val_queue_mine_a = Queue(3)
-    train_mine = Mine_Pro(train_configs,"train",train_queue,None,5721)
-    train_mine.start()
-    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
-    val_mine.start()
-
-    tmp_noise_config = {
+    tmp_noise_config_train_hard = {
         "position" : 2,
-        "frame_normal_v" : 10.0,
+        "frame_normal_v" : 50.0,
         "frame_normal_h" : 50.0,
         "theta" : 0.1,
         "axay" : 0.1,
         "pd" : 0.1,
         "ps" : 0.1
     }
+    if train_configs["training_mode"] == "pretrain":
+        train_mine = Mine_Pro(train_configs,"train",train_queue,None,5721)
+    else:
+        train_mine = Mine_Pro(train_configs,"train",train_queue,None,5721,tmp_noise_config_train_hard)
+    train_mine.start()
+    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
+    val_mine.start()
+
+    tmp_noise_config = tmp_noise_config_train_hard.copy()
+    tmp_noise_config["frame_normal_v"] = 10.0
+    tmp_noise_config["frame_normal_h"] = 50.0
     val_mine = Mine_Pro(train_configs,"val",val_queue_mine_v,None,992831,tmp_noise_config)
     val_mine.start()
     tmp_noise_config["frame_normal_v"] = 50.0
@@ -155,7 +162,8 @@ if __name__ == "__main__":
     training_net = DIFT_TRAIN_NET(train_configs)
     training_net.to(train_configs["training_device"])
     
-    optimizer = optim.Adam(training_net.parameters(), lr=1e-4,weight_decay=1e-6)
+    lr = 1e-4 if train_configs["training_mode"] == "pretrain" else 1e-5
+    optimizer = optim.Adam(training_net.parameters(), lr=lr,weight_decay=1e-6)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50000, gamma=0.9)
 
@@ -163,7 +171,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_basenet_gd".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_basenet_ld".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -266,10 +274,14 @@ if __name__ == "__main__":
     if args.pretrained_model_pan != "":
         print("loading trained model...")
         state = torch.load(args.pretrained_model_pan, map_location=torch.device('cpu'))
-        training_net.load_state_dict(state['state_dict'])
-        optimizer.load_state_dict(state['optimizer'])
-        scheduler.load_state_dict(state["lr_schedular"])
-        start_step = state['epoch']
+        try:
+            training_net.load_state_dict(state['state_dict'])
+            optimizer.load_state_dict(state['optimizer'])
+            scheduler.load_state_dict(state["lr_schedular"])
+            start_step = state['epoch']
+        except Exception as identifier:
+            print("cannot found key, try to load parameter directly")
+            training_net.load_state_dict(state)
         training_net.to(train_configs["training_device"])
         print("done.")
         

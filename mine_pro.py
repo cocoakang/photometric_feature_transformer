@@ -19,13 +19,10 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
     np.random.seed(seed)
     # torch.random.manual_seed(seed+1)
     # random.seed(seed+2)
-    if name == "train":
+    if noise_config is None:
         mine = Mine(args,name)
-    elif name == "val":
-        if noise_config is None:
-            mine = Mine(args,name)
-        else:
-            mine = Mine_Hard(args,name,noise_config)
+    else:
+        mine = Mine_Hard(args,name,noise_config)
     print("build mine done.")
     #######################################
     # define rendering module           ###
