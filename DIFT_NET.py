@@ -42,7 +42,7 @@ class DIFT_NET(nn.Module):
     
         # dift_codes_albedo = self.albedo_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
 
-        dift_codes_g_diff_local = self.g_diff_local_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
+        dift_codes_g_diff_local = self.g_diff_local_part(x_n[:,m_ptr:m_ptr+self.partition["local"]],cossin)
         m_ptr += self.partition["local"]
 
         dift_codes_g_diff_global = self.g_diff_global_part(x_n[:,m_ptr:m_ptr+self.partition["global"]],cossin)
