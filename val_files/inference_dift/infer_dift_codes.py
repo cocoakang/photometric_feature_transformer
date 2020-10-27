@@ -23,7 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("view_code_len",type=int)
 
     parser.add_argument("--batch_size",type=int,default=5000)
-    parser.add_argument("--scalar",type=float,default=30.0)#184.0)
+    parser.add_argument("--scalar",type=float,default=184.0)
 
     args = parser.parse_args()
 

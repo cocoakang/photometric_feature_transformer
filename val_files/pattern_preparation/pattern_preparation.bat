@@ -2,8 +2,8 @@
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :::::::::::::::::::::::::::::::::::::::: task start                                                         :::::::
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-SET MODEL_ROOT="D:/CVPR21_models/10_15_baseline/models/"
-SET MODEL_FILE_NAME="model_state_60000.pkl"
+SET MODEL_ROOT="D:/CVPR21_models/10_27_cov_basenet/models/"
+SET MODEL_FILE_NAME="model_state_120000.pkl"
 SET NODE_NAME="linear_projection"
 SET SAMPLE_VIEW_NUM=24
 SET ALL_POS=0
