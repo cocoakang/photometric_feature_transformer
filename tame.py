@@ -62,11 +62,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
-    parser.add_argument("--pretrained_model_pan",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct26_14-42-32_Kang-Deep-Learninglearn_l2_ml3_mg3_dla0_dlna5_dg5_basenet_gd/models/model_state_90000.pkl")
+    parser.add_argument("--pretrained_model_pan",type=str,default="")
 
     args = parser.parse_args()
     
@@ -111,6 +111,9 @@ if __name__ == "__main__":
     lambdas["E1"] =1.0
     train_configs["lambdas"] = lambdas
 
+    train_configs["global_data_loss"] = 1.0
+    train_configs["local_data_loss"] = 1.0
+
     train_configs["data_root"] = args.data_root
     train_configs["batch_size"] = 25
     train_configs["pre_load_buffer_size"] = 500000
@@ -119,11 +122,12 @@ if __name__ == "__main__":
     ### data loader
     ##########################################
     # train_Semaphore = Semaphore(100)
-    train_queue = Queue(25)
+    train_queue_local = Queue(10)
+    train_queue_global = Queue(10)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(3)
-    val_queue_mine_v = Queue(3)
-    val_queue_mine_h = Queue(3)
+    # val_queue_mine_v = Queue(3)
+    # val_queue_mine_h = Queue(3)
     val_queue_mine_a = Queue(3)
     tmp_noise_config_train_hard = {
         "position" : 2,
@@ -134,27 +138,26 @@ if __name__ == "__main__":
         "pd" : 0.1,
         "ps" : 0.1
     }
-    if train_configs["training_mode"] == "pretrain":
-        train_mine = Mine_Pro(train_configs,"train",train_queue,None,5721)
-    else:
-        train_mine = Mine_Pro(train_configs,"train",train_queue,None,5721,tmp_noise_config_train_hard)
-    train_mine.start()
+    train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,5721)
+    train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,5721,tmp_noise_config_train_hard)
+    train_mine_global.start()
+    train_mine_local.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
     val_mine.start()
 
     tmp_noise_config = tmp_noise_config_train_hard.copy()
-    tmp_noise_config["frame_normal_v"] = 10.0
-    tmp_noise_config["frame_normal_h"] = 50.0
-    val_mine = Mine_Pro(train_configs,"val",val_queue_mine_v,None,992831,tmp_noise_config)
-    val_mine.start()
-    tmp_noise_config["frame_normal_v"] = 50.0
-    tmp_noise_config["frame_normal_h"] = 10.0
-    val_mine = Mine_Pro(train_configs,"val",val_queue_mine_h,None,992831,tmp_noise_config)
-    val_mine.start()
     tmp_noise_config["frame_normal_v"] = 50.0
     tmp_noise_config["frame_normal_h"] = 50.0
     val_mine = Mine_Pro(train_configs,"val",val_queue_mine_a,None,992831,tmp_noise_config)
     val_mine.start()
+    # tmp_noise_config["frame_normal_v"] = 50.0
+    # tmp_noise_config["frame_normal_h"] = 10.0
+    # val_mine = Mine_Pro(train_configs,"val",val_queue_mine_h,None,992831,tmp_noise_config)
+    # val_mine.start()
+    # tmp_noise_config["frame_normal_v"] = 10.0
+    # tmp_noise_config["frame_normal_h"] = 50.0
+    # val_mine = Mine_Pro(train_configs,"val",val_queue_mine_v,None,992831,tmp_noise_config)
+    # val_mine.start()
     
     ##########################################
     ### net and optimizer
@@ -171,7 +174,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_basenet_ld".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_basenet_ld&gd".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -295,18 +298,18 @@ if __name__ == "__main__":
         if global_step % VALIDATE_ITR == 0:
             # print("val queue size:",val_queue.qsize())
             val_itr = global_step // VALIDATE_ITR
-            if val_itr % 4 == 0:
+            if val_itr % 2 == 0:
                 val_data = val_queue.get()
                 post_fix = "general"
-            elif val_itr % 4 == 1:
-                val_data = val_queue_mine_h.get()
-                post_fix = "LDCh"
-            elif val_itr % 4 == 2:
-                val_data = val_queue_mine_v.get()
-                post_fix = "LDCv"
-            elif val_itr % 4 == 3:
+            elif val_itr % 2 == 1:
                 val_data = val_queue_mine_a.get()
                 post_fix = "LDCa"
+            # elif val_itr % 4 == 2:
+            #     val_data = val_queue_mine_v.get()
+            #     post_fix = "LDCv"
+            # elif val_itr % 4 == 3:
+            #     val_data = val_queue_mine_h.get()
+            #     post_fix = "LDCh"
             # val_Semaphore.release()
             # print("got val")
             with torch.no_grad():
@@ -351,11 +354,18 @@ if __name__ == "__main__":
         # print("train queue size:",train_queue.qsize())
         # start = time.time()
         # end_time = [start]
-        train_data = train_queue.get()
+        train_data_global = train_queue_global.get()
+        train_data_local = train_queue_local.get()
         # end_time.append(time.time())
         # train_Semaphore.release()
         # print("got train")
-        total_loss,loss_log_terms = training_net(train_data,global_step=global_step)
+        tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
+        total_loss = tmp_total_loss*train_configs["global_data_loss"]
+        loss_log_terms = tmp_loss_log_terms
+        tmp_total_loss,tmp_loss_log_terms = training_net(train_data_local,global_step=global_step)
+        total_loss = total_loss+tmp_total_loss*train_configs["local_data_loss"]
+        for a_key in loss_log_terms:
+            loss_log_terms[a_key] = loss_log_terms[a_key]+tmp_loss_log_terms[a_key]
         # end_time.append(time.time())
         total_loss.backward()
         # end_time.append(time.time())

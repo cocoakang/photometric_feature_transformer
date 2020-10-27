@@ -93,12 +93,6 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
         # exit()
 
         rotate_angles = rotate_angles.reshape(batch_size,2,1).permute(1,0,2).reshape(2*batch_size,1)
-        view_ids_cossin = torch.cat(
-            [
-                torch.sin(rotate_angles),
-                torch.cos(rotate_angles)
-            ],dim=1
-        )
         position_2 = position_2.reshape(batch_size,2,3).permute(1,0,2).reshape(2*batch_size,3)
         # position_2 = end_points["position"].reshape(batch_size,2,3)
         # position_2 = position_2.permute(1,0,2).reshape(2*batch_size,3)
@@ -107,12 +101,8 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
 
         training_data_map = {
             "input_lumi":rendered_result,
-            "param_2":param_2,
             "position":position,
-            "position_2":position_2,
-            "normal_local":normals_localview,
             "normal":normals_globalview,
-            "view_ids_cossin":view_ids_cossin,
             "rotate_theta":rotate_angles
         }
         # print("[MINE PRO PROCESS] putting data...{}".format(self.mine.name))

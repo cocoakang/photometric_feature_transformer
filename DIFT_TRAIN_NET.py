@@ -75,14 +75,10 @@ class DIFT_TRAIN_NET(nn.Module):
         # end_time = [start]
         # stamp_name=[]
         input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,3)
-        view_ids_cossin = batch_data["view_ids_cossin"].to(self.training_device)#(2*batchsize,2)
         global_positions = batch_data["position"].to(self.training_device)#(batchsize,3)
         normal_label = batch_data["normal"].to(self.training_device)#(2*batchsize,3)
-        normal_label_local = batch_data["normal_local"].to(self.training_device)#(2*batchsize,3)
         rotate_theta = batch_data["rotate_theta"].to(self.training_device)#(2*batchsize,1)
-        position_2 = batch_data["position_2"].to(self.training_device)#(2*batchsize,3)
-        param_2 = batch_data["param_2"].to(self.training_device)#(2*batchsize,7)
-
+        
         ############################################################################################################################
         ## step 2 draw nn net
         ############################################################################################################################
