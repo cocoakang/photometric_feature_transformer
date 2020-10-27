@@ -23,7 +23,8 @@ class DIFT_NET(nn.Module):
         
         # self.albedo_part = DIFT_NET_ALBEDO(args,args["partition"]["local"],args["dift_code_config"]["local_albedo"][0])
         self.g_diff_local_part = DIFT_NET_G_DIFF_LOCAL(args,args["partition"]["local"],args["dift_code_config"]["local_noalbedo"][0])
-        self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(args,args["partition"]["global"],args["dift_code_config"]["global"][0])
+        if self.dift_code_config["global"][0] > 0:
+            self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(args,args["partition"]["global"],args["dift_code_config"]["global"][0])
         # self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
         
     def forward(self,batch_data,cossin,return_origin_codes=False):
@@ -45,15 +46,19 @@ class DIFT_NET(nn.Module):
         dift_codes_g_diff_local = self.g_diff_local_part(x_n[:,m_ptr:m_ptr+self.partition["local"]],cossin)
         m_ptr += self.partition["local"]
 
-        dift_codes_g_diff_global = self.g_diff_global_part(x_n[:,m_ptr:m_ptr+self.partition["global"]],cossin)
-        m_ptr+=self.partition["global"]
+        if self.dift_code_config["global"][0] > 0:
+            dift_codes_g_diff_global = self.g_diff_global_part(x_n[:,m_ptr:m_ptr+self.partition["global"]],cossin)
+            m_ptr+=self.partition["global"]
 
         # dift_codes_g_spec = self.g_spec_part(m_no_rhos[:,m_ptr:m_ptr+self.partition["g_spec"][0]],view_mat_model_t,view_mat_for_normal_t)
         # m_ptr+=self.partition["g_spec"][0]
 
-
-        dift_codes = torch.cat([dift_codes_g_diff_local,dift_codes_g_diff_global],dim=1)
-        dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+        if self.dift_code_config["global"][0] > 0:
+            dift_codes = torch.cat([dift_codes_g_diff_local,dift_codes_g_diff_global],dim=1)
+            dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
+        else:
+            dift_codes = dift_codes_g_diff_local#
+        
 
         if not return_origin_codes:
             return dift_codes#,torch.zeros(batch_size,3,dtype=torch.float32)
@@ -61,7 +66,8 @@ class DIFT_NET(nn.Module):
             origin_codes_map = {
                 # "local_albedo" : dift_codes_albedo,
                 "local_noalbedo" : dift_codes_g_diff_local,
-                "global" : dift_codes_g_diff_global,
                 # "g_spec" : dift_codes_g_spec,
             }#CAUTION THIS MUST BE SAME AS DIFT_CODE_CONFIG
+            if self.dift_code_config["global"][0] > 0:
+                origin_codes_map["global"] = dift_codes_g_diff_global
             return dift_codes,origin_codes_map

@@ -184,21 +184,21 @@ class DIFT_TRAIN_NET(nn.Module):
         #### covariance loss
         #######
         # print("========================================")
-        # Y1 = dift_codes_full[0]#[batch,diftcode_len]
-        # Y2 = dift_codes_full[1]#[batch,diftcode_len]
-        # for i,Ys in enumerate([Y1, Y2]):
-        #     '''
-        #     Ys (imgnum,codelen)
-        #     '''
-        #     Ys = self.bn(Ys)
-        #     Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
-        #     Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
-        #     tmp_E2 = torch.sum(Rs*Rs)*0.5
+        Y1 = dift_codes_full[0]#[batch,diftcode_len]
+        Y2 = dift_codes_full[1]#[batch,diftcode_len]
+        for i,Ys in enumerate([Y1, Y2]):
+            '''
+            Ys (imgnum,codelen)
+            '''
+            Ys = self.bn(Ys)
+            Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
+            Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
+            tmp_E2 = torch.sum(Rs*Rs)*0.5
 
-        #     if i == 0:
-        #         E2 = tmp_E2
-        #     else:
-        #         E2 = E2 + tmp_E2
+            if i == 0:
+                E2 = tmp_E2
+            else:
+                E2 = E2 + tmp_E2
 
         #######
         #### albedo loss
@@ -215,13 +215,14 @@ class DIFT_TRAIN_NET(nn.Module):
 
         ### !6 reg loss
         # reg_loss = self.regularizer(self.dift_net)
-        total_loss = E1*self.lambdas["E1"]
+        total_loss = E1*self.lambdas["E1"]+E2*self.lambdas["E2"]
 
         loss_log_map = {
             # "albedo_value_total_loss":albedo_loss.item(),
             # "albedo_value_diff_loss":albedo_loss_diff.item(),
             # "albedo_value_spec_loss":albedo_loss_spec.item(),
             "e1_loss":E1.item(),
+            "e2_loss":E2.item(),
             "total_loss":total_loss.item(),
         }
         loss_log_map.update(E1_loss_map)
