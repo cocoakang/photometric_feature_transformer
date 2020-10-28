@@ -246,7 +246,9 @@ class DIFT_TRAIN_NET(nn.Module):
             reg_loss = self.regularizer(self.dift_net.catnet)
         
         
-        total_loss = E1*self.lambdas["E1"]+reg_loss*self.lambdas["reg_loss"]#+E2*self.lambdas["E2"]
+        total_loss = E1*self.lambdas["E1"]
+        if self.training_mode == "finetune":
+            total_loss = total_loss + reg_loss*self.lambdas["reg_loss"]#+E2*self.lambdas["E2"]
 
         loss_log_map = {
             # "albedo_value_total_loss":albedo_loss.item(),
@@ -254,9 +256,10 @@ class DIFT_TRAIN_NET(nn.Module):
             # "albedo_value_spec_loss":albedo_loss_spec.item(),
             "e1_loss":E1.item(),
             # "e2_loss":E2.item(),
-            "reg_loss":reg_loss.item(),
             "total_loss":total_loss.item(),
         }
+        if self.training_mode == "finetune":
+            loss_log_map["reg_loss"] = reg_loss.item()
         loss_log_map.update(E1_loss_map)
         return total_loss,loss_log_map
     
