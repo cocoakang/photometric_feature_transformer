@@ -62,9 +62,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=3)
-    parser.add_argument("--rendering_gpu",type=int,default=3)
-    parser.add_argument("--checker_gpu",type=int,default=3)
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -95,21 +95,26 @@ if __name__ == "__main__":
 
     partition = {}#m_len
     partition["local"] = 3
-    partition["global"] = 3
+    partition["global"] = 0
  
     dift_code_config = {}#dift_code_len,losslambda
     # dift_code_config["local_albedo"] = (3,1.0)
     dift_code_config["local_noalbedo"] = (5,1.0)
-    dift_code_config["global"] = (5,10.0)
+    dift_code_config["global"] = (0,1.0)
+    if train_configs["training_mode"] == "finetune":
+        dift_code_config["cat"] = (10,10.0)
 
     train_configs["measurements_length"] = sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
     train_configs["dift_code_config"] = dift_code_config
-    train_configs["dift_code_len"] = sum([dift_code_config[a_key][0] for a_key in dift_code_config])
+    if train_configs["training_mode"] == "pretrain":
+        train_configs["dift_code_len"] = sum([dift_code_config[a_key][0] for a_key in dift_code_config if a_key != "cat"])
+    else:
+        train_configs["dift_code_len"] = dift_code_config["cat"][0]
 
     lambdas = {}
     lambdas["E1"] =1.0
-    lambdas["E2"] =1e-1
+    # lambdas["E2"] =1e-1
     train_configs["lambdas"] = lambdas
 
     train_configs["global_data_loss"] = 1.0
@@ -176,13 +181,13 @@ if __name__ == "__main__":
     ##########################################
     if args.log_file_name == "":
         net_type = "basenet" if dift_code_config["global"][0] > 0 else "net3"
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_{}_ldgd_cov".format(
-            partition["local"],partition["global"],0,
-            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0],net_type)
-        )
-        # os.makedirs("../log_no_where/",exist_ok=True)
-        # os.system("rm -r ../log_no_where/*")
-        # writer = SummaryWriter(log_dir="../log_no_where/")
+        # writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_{}_ldgd_catnet".format(
+        #     partition["local"],partition["global"],0,
+        #     dift_code_config["local_noalbedo"][0],dift_code_config["global"][0],net_type)
+        # )
+        os.makedirs("../log_no_where/",exist_ok=True)
+        os.system("rm -r ../log_no_where/*")
+        writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
@@ -201,20 +206,21 @@ if __name__ == "__main__":
     ###quality checker
     quality_checkers = []
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_gh",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="local_noalbedo"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    if dift_code_config["local_noalbedo"][0] > 0:
+        checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+            train_configs,
+            log_dir,
+            "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+            "uniform_mirror_ball_gh",
+            torch.device("cuda:{}".format(args.checker_gpu)),
+            axay=(0.05,0.05),
+            diff_albedo=0.5,
+            spec_albedo=3.0,
+            batch_size=500,
+            test_view_num=1,
+            check_type="local_noalbedo"
+        )
+        quality_checkers.append(checker_uniform_mirror_ball)
 
     if dift_code_config["global"][0] > 0:
         checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
@@ -287,10 +293,15 @@ if __name__ == "__main__":
             start_step = state['epoch']
         except Exception as identifier:
             print("cannot found key, try to load parameter directly")
-            training_net.load_state_dict(state)
+            # training_net.load_state_dict(state)
+            model_dict = training_net.state_dict()
+            pretrained_dict = {k: v for k, v in state.items() if k in model_dict}
+            model_dict.update(pretrained_dict) 
+            training_net.load_state_dict(model_dict)
+
         training_net.to(train_configs["training_device"])
         print("done.")
-        
+
     ##########################################
     ### training part
     ##########################################
@@ -362,13 +373,19 @@ if __name__ == "__main__":
         # end_time.append(time.time())
         # train_Semaphore.release()
         # print("got train")
-        tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
-        total_loss = tmp_total_loss*train_configs["global_data_loss"]
-        loss_log_terms = tmp_loss_log_terms
-        tmp_total_loss,tmp_loss_log_terms = training_net(train_data_local,global_step=global_step)
-        total_loss = total_loss+tmp_total_loss*train_configs["local_data_loss"]
-        for a_key in loss_log_terms:
-            loss_log_terms[a_key] = loss_log_terms[a_key]+tmp_loss_log_terms[a_key]
+        if train_configs["training_mode"] == "pretrain":
+            tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
+            total_loss = tmp_total_loss
+            loss_log_terms = tmp_loss_log_terms
+        elif train_configs["training_mode"] == "finetune":
+            tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
+            total_loss = tmp_total_loss*train_configs["global_data_loss"]
+            loss_log_terms = tmp_loss_log_terms
+            tmp_total_loss,tmp_loss_log_terms = training_net(train_data_local,global_step=global_step)
+            total_loss = total_loss+tmp_total_loss*train_configs["local_data_loss"]
+            for a_key in loss_log_terms:
+                loss_log_terms[a_key] = loss_log_terms[a_key]+tmp_loss_log_terms[a_key]
+        
         # end_time.append(time.time())
         total_loss.backward()
         # end_time.append(time.time())

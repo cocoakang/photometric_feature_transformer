@@ -35,7 +35,7 @@ class DIFT_TRAIN_NET(nn.Module):
         self.lambdas = args["lambdas"]
         self.partition = args["partition"]
         self.dift_code_config = args["dift_code_config"]
-
+        self.training_mode = args["training_mode"]
         ########################################
         ##loading setup configuration        ###
         ########################################
@@ -58,8 +58,31 @@ class DIFT_TRAIN_NET(nn.Module):
 
         self.diag_ind = np.diag_indices(self.dift_code_len)
 
-        self.bn = torch.nn.BatchNorm1d(self.dift_code_len, affine=False)
+        # self.bn = torch.nn.BatchNorm1d(self.dift_code_len, affine=False)
 
+
+    def compute_e1_loss(self,Y1,Y2):
+        #E1
+        eps = 1e-6
+        Y1_tmp = torch.unsqueeze(Y1,dim=0)
+        Y2_tmp = torch.unsqueeze(Y2,dim=1)
+        D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
+        D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
+        # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
+        # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]               
+
+        D_exp = torch.exp(2.0-D)
+        D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
+        #"compute_col_loss"
+        D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]
+        s_ii_c = D_ii / (eps+D_col_sum)
+        #"compute_row_loss"
+        D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
+        s_ii_r = D_ii / (eps+D_row_sum)
+        
+        tmp_E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
+    
+        return tmp_E1,D
 
     def forward(self,batch_data,call_type="train",global_step=-1):
         '''
@@ -114,46 +137,31 @@ class DIFT_TRAIN_NET(nn.Module):
         ############################################################################################################################
         E1_loss_map = {}
         if call_type == "train":
-            for i,code_key in enumerate(origin_codes_map):
-                dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
+            if self.training_mode == "pretrain":
+                for i,code_key in enumerate(origin_codes_map):
+                    dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
+                    
+                    Y1 = dift_codes[0]#[batch,diftcode_len]
+                    Y2 = dift_codes[1]#[batch,diftcode_len]
                 
-                Y1 = dift_codes[0]#[batch,diftcode_len]
-                Y2 = dift_codes[1]#[batch,diftcode_len]
+                    tmp_E1,_ = self.compute_e1_loss(Y1,Y2)
                 
-                #E1
-                eps = 1e-6
-                Y1_tmp = torch.unsqueeze(Y1,dim=0)
-                Y2_tmp = torch.unsqueeze(Y2,dim=1)
-                D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
-                D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
-                # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
-                # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]               
+                    E1_loss_map[code_key+"_loss"] = tmp_E1.item()
+                    if i == 0:
+                        E1 = tmp_E1*self.dift_code_config[code_key][1]
+                    else:
+                        E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
+            elif self.training_mode == "finetune":
+                Y1 = dift_codes_full[0]#[batch,diftcode_len]
+                Y2 = dift_codes_full[1]#[batch,diftcode_len]
 
-                D_exp = torch.exp(2.0-D)
-                D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
-                #"compute_col_loss"
-                D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]
-                s_ii_c = D_ii / (eps+D_col_sum)
-                #"compute_row_loss"
-                D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
-                s_ii_r = D_ii / (eps+D_row_sum)
-                
-                tmp_E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
-                E1_loss_map[code_key+"_loss"] = tmp_E1.item()
-                if i == 0:
-                    E1 = tmp_E1*self.dift_code_config[code_key][1]
-                else:
-                    E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
+                E1,_ = self.compute_e1_loss(Y1,Y2)
+
         elif call_type == "val" or call_type == "check_quality":
             Y1 = dift_codes_full[0]#[batch,diftcode_len]
             Y2 = dift_codes_full[1]#[batch,diftcode_len]
             
-            #E1
-            eps = 1e-6
-            Y1_tmp = torch.unsqueeze(Y1,dim=0)
-            Y2_tmp = torch.unsqueeze(Y2,dim=1)
-            D_sub = Y1_tmp-Y2_tmp#(batch,batch,diftcode_len)
-            D = torch.sqrt(torch.sum(D_sub*D_sub,dim=2)+1e-6)
+            E1,D = self.compute_e1_loss(Y1,Y2)
 
             if call_type == "check_quality" :
                 term_map = {
@@ -166,17 +174,6 @@ class DIFT_TRAIN_NET(nn.Module):
                 }
                 term_map = self.visualize_quality_terms(term_map)
                 return term_map
-
-            D_exp = torch.exp(2.0-D)
-            D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
-            #"compute_col_loss"
-            D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]
-            s_ii_c = D_ii / (eps+D_col_sum)
-            #"compute_row_loss"
-            D_row_sum = torch.sum(D_exp,dim=1,keepdim=True)#[batch,1]
-            s_ii_r = D_ii / (eps+D_row_sum)
-            
-            E1 = -0.5*(torch.sum(torch.log(s_ii_c))+torch.sum(torch.log(s_ii_r)))
         else:
             print("unkown call type")
             exit(0)
@@ -184,21 +181,21 @@ class DIFT_TRAIN_NET(nn.Module):
         #### covariance loss
         #######
         # print("========================================")
-        Y1 = dift_codes_full[0]#[batch,diftcode_len]
-        Y2 = dift_codes_full[1]#[batch,diftcode_len]
-        for i,Ys in enumerate([Y1, Y2]):
-            '''
-            Ys (imgnum,codelen)
-            '''
-            Ys = self.bn(Ys)
-            Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
-            Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
-            tmp_E2 = torch.sum(Rs*Rs)*0.5
+        # Y1 = dift_codes_full[0]#[batch,diftcode_len]
+        # Y2 = dift_codes_full[1]#[batch,diftcode_len]
+        # for i,Ys in enumerate([Y1, Y2]):
+        #     '''
+        #     Ys (imgnum,codelen)
+        #     '''
+        #     Ys = self.bn(Ys)
+        #     Rs = torch.matmul(Ys.permute(1,0),Ys)/self.dift_code_len
+        #     Rs[self.diag_ind[0],self.diag_ind[1]] = 0.0
+        #     tmp_E2 = torch.sum(Rs*Rs)*0.5
 
-            if i == 0:
-                E2 = tmp_E2
-            else:
-                E2 = E2 + tmp_E2
+        #     if i == 0:
+        #         E2 = tmp_E2
+        #     else:
+        #         E2 = E2 + tmp_E2
 
         #######
         #### albedo loss
@@ -215,14 +212,14 @@ class DIFT_TRAIN_NET(nn.Module):
 
         ### !6 reg loss
         # reg_loss = self.regularizer(self.dift_net)
-        total_loss = E1*self.lambdas["E1"]+E2*self.lambdas["E2"]
+        total_loss = E1*self.lambdas["E1"]#+E2*self.lambdas["E2"]
 
         loss_log_map = {
             # "albedo_value_total_loss":albedo_loss.item(),
             # "albedo_value_diff_loss":albedo_loss_diff.item(),
             # "albedo_value_spec_loss":albedo_loss_spec.item(),
             "e1_loss":E1.item(),
-            "e2_loss":E2.item(),
+            # "e2_loss":E2.item(),
             "total_loss":total_loss.item(),
         }
         loss_log_map.update(E1_loss_map)
