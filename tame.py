@@ -62,11 +62,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=2)
+    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--checker_gpu",type=int,default=2)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
+    parser.add_argument("--pretrained_model_pan_h",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct28_11-38-07_Kang-Deep-Learninglearn_l2_ml3_mg0_dla0_dlna5_dg0_h/models/model_state_30000.pkl")
+    parser.add_argument("--pretrained_model_pan_v",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct28_12-20-37_Kang-Deep-Learninglearn_l2_ml0_mg3_dla0_dlna0_dg5_v/models/model_state_30000.pkl")
 
     args = parser.parse_args()
     
@@ -89,17 +91,17 @@ if __name__ == "__main__":
     train_configs["lumitexel_length"] = 24576 // train_configs["lumitexel_downsample_rate"] // train_configs["lumitexel_downsample_rate"]
     train_configs["noise_stddev"] = 0.01
     train_configs["setup_input"] = setup_input
-    train_configs["training_mode"] = "pretrain" if args.pretrained_model_pan == "" else "finetune"
+    train_configs["training_mode"] = "pretrain" if (args.pretrained_model_pan_h == "" and args.pretrained_model_pan_v == "") else "finetune"
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len
-    partition["local"] = 0
+    partition["local"] = 3
     partition["global"] = 3
  
     dift_code_config = {}#dift_code_len,losslambda
     # dift_code_config["local_albedo"] = (3,1.0)
-    dift_code_config["local_noalbedo"] = (0,1.0)
+    dift_code_config["local_noalbedo"] = (5,1.0)
     dift_code_config["global"] = (5,10.0)
     if train_configs["training_mode"] == "finetune":
         dift_code_config["cat"] = (10,10.0)
@@ -113,8 +115,9 @@ if __name__ == "__main__":
         train_configs["dift_code_len"] = dift_code_config["cat"][0]
 
     lambdas = {}
-    lambdas["E1"] =1.0
+    lambdas["E1"] = 1.0
     # lambdas["E2"] =1e-1
+    lambdas["reg_loss"] = 1.0
     train_configs["lambdas"] = lambdas
 
     train_configs["global_data_loss"] = 1.0
@@ -171,7 +174,10 @@ if __name__ == "__main__":
     training_net = DIFT_TRAIN_NET(train_configs)
     training_net.to(train_configs["training_device"])
     
-    lr = 1e-4 if train_configs["training_mode"] == "pretrain" else 1e-5
+    if train_configs["training_mode"] == "finetune":
+        training_net.load_pretrained_models(args.pretrained_model_pan_h,args.pretrained_model_pan_v)
+
+    lr = 1e-4# if train_configs["training_mode"] == "pretrain" else 1e-5
     optimizer = optim.Adam(training_net.parameters(), lr=lr,weight_decay=1e-6)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50000, gamma=0.9)
@@ -180,7 +186,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_c".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -196,6 +202,7 @@ if __name__ == "__main__":
     os.makedirs(train_file_bak)
     os.system("cp *.py "+train_file_bak)
     os.system("cp *.sh "+train_file_bak)
+    os.system("cp *.txt "+train_file_bak)
     with open(log_dir_model+"model_params.txt","w") as pf:
         pf.write("{}".format(training_net))
         pf.write("-----------------")
@@ -237,20 +244,20 @@ if __name__ == "__main__":
         )
         quality_checkers.append(checker_uniform_mirror_ball)
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_m",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="global"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_m",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="global"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
     #     train_configs,
@@ -300,6 +307,7 @@ if __name__ == "__main__":
 
         training_net.to(train_configs["training_device"])
         print("done.")
+    
 
     ##########################################
     ### training part
@@ -368,15 +376,15 @@ if __name__ == "__main__":
         # start = time.time()
         # end_time = [start]
         train_data_global = train_queue_global.get()
-        # train_data_local = train_queue_local.get()
         # end_time.append(time.time())
         # train_Semaphore.release()
         # print("got train")
-        if train_configs["training_mode"] == "pretrain":
+        if True:#train_configs["training_mode"] == "pretrain":
             tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
             total_loss = tmp_total_loss
             loss_log_terms = tmp_loss_log_terms
         elif train_configs["training_mode"] == "finetune":
+            train_data_local = train_queue_local.get()
             tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
             total_loss = tmp_total_loss*train_configs["global_data_loss"]
             loss_log_terms = tmp_loss_log_terms

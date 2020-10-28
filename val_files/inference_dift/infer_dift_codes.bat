@@ -1,11 +1,11 @@
 @echo off
 
-SET DATA_ROOT="D:/CVPR21_freshmeat/10_27_cov/10_27_cov_net3/"
-SET MODEL_ROOT="D:/CVPR21_models/10_27_cov_net3/models/"
-SET MODEL_FILE_NAME="model_state_120000.pkl"
+SET DATA_ROOT="D:/CVPR21_freshmeat/10_28_nounit/billiard/"
+SET MODEL_ROOT="D:/CVPR21_models/10_28_nounit/models/"
+SET MODEL_FILE_NAME="model_state_30000.pkl"
 
 SET SAMPLE_VIEW_NUM=24
-SET ROTATE_VIEW_NUM=24
+SET ROTATE_VIEW_NUM=1
 SET MEASUREMENT_LEN=6
 SET /A DIFT_CODE_LEN_G=5
 SET /A DIFT_CODE_LEN_M=5

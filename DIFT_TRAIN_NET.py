@@ -54,12 +54,43 @@ class DIFT_TRAIN_NET(nn.Module):
         # self.decompose_net = SIGA20_NET_m_decompose(args)
         self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
         # self.l2_loss_fn_none = torch.nn.MSELoss(reduction='none')
-        # self.regularizer = Regularization(self.dift_net,1.0)#self.reg_alpha)
+        if self.training_mode == "finetune":
+            self.regularizer = Regularization(self.dift_net.catnet,1.0)#self.reg_alpha)
 
         self.diag_ind = np.diag_indices(self.dift_code_len)
 
         # self.bn = torch.nn.BatchNorm1d(self.dift_code_len, affine=False)
 
+    def load_pretrained_models(self,pretrained_model_pan_h,pretrained_model_pan_v):
+        state_h = torch.load(pretrained_model_pan_h, map_location=torch.device('cpu'))
+        tmp_state = {}
+        lighting_pattern_collector = []
+        for a_key in state_h:
+            if "dift_net.g_diff_local_part." in a_key:
+                tmp_state[a_key.replace("dift_net.g_diff_local_part.","")] = state_h[a_key]
+            elif a_key == "linear_projection.kernel":
+                lighting_pattern_collector.append(state_h[a_key])
+            else:
+                print("unkown param name:",a_key)
+        self.dift_net.g_diff_local_part.load_state_dict(tmp_state)
+        
+        state_v = torch.load(pretrained_model_pan_v, map_location=torch.device('cpu'))
+        tmp_state = {}
+        for a_key in state_v:
+            if "dift_net.g_diff_global_part." in a_key:
+                tmp_state[a_key.replace("dift_net.g_diff_global_part.","")] = state_v[a_key]
+            elif a_key == "linear_projection.kernel":
+                lighting_pattern_collector.append(state_v[a_key])
+            else:
+                print("unkown param name:",a_key)
+        self.dift_net.g_diff_global_part.load_state_dict(tmp_state)
+        
+        lighting_pattern_collector = torch.cat(lighting_pattern_collector,dim=0)
+        # for a_key in self.linear_projection.state_dict():
+        #     print(a_key)
+        self.linear_projection.load_state_dict({"kernel":lighting_pattern_collector})
+
+        self.to(self.training_device)
 
     def compute_e1_loss(self,Y1,Y2):
         #E1
@@ -211,8 +242,11 @@ class DIFT_TRAIN_NET(nn.Module):
         # l2_loss_m = torch.sum(torch.diag(D_exp_m))*0.05
 
         ### !6 reg loss
-        # reg_loss = self.regularizer(self.dift_net)
-        total_loss = E1*self.lambdas["E1"]#+E2*self.lambdas["E2"]
+        if self.training_mode == "finetune":
+            reg_loss = self.regularizer(self.dift_net.catnet)
+        
+        
+        total_loss = E1*self.lambdas["E1"]+reg_loss*self.lambdas["reg_loss"]#+E2*self.lambdas["E2"]
 
         loss_log_map = {
             # "albedo_value_total_loss":albedo_loss.item(),
@@ -220,6 +254,7 @@ class DIFT_TRAIN_NET(nn.Module):
             # "albedo_value_spec_loss":albedo_loss_spec.item(),
             "e1_loss":E1.item(),
             # "e2_loss":E2.item(),
+            "reg_loss":reg_loss.item(),
             "total_loss":total_loss.item(),
         }
         loss_log_map.update(E1_loss_map)
