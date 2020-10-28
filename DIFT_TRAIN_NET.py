@@ -71,7 +71,7 @@ class DIFT_TRAIN_NET(nn.Module):
         # D_mat_mul = torch.matmul(Y1,Y2.T)#(batch,batch)
         # D = torch.sqrt(2.0*(1.0-D_mat_mul+1e-6))#[batch,batch]               
 
-        D_exp = torch.exp(2.0-D)
+        D_exp = torch.exp(-D)
         D_ii = torch.unsqueeze(torch.diag(D_exp),dim=1)#[batch,1]
         #"compute_col_loss"
         D_col_sum = torch.sum(D_exp.T,dim=1,keepdim=True)#[batch,1]

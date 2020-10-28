@@ -180,14 +180,13 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        net_type = "basenet" if dift_code_config["global"][0] > 0 else "net3"
-        # writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_{}_ldgd_catnet".format(
-        #     partition["local"],partition["global"],0,
-        #     dift_code_config["local_noalbedo"][0],dift_code_config["global"][0],net_type)
-        # )
-        os.makedirs("../log_no_where/",exist_ok=True)
-        os.system("rm -r ../log_no_where/*")
-        writer = SummaryWriter(log_dir="../log_no_where/")
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_h".format(
+            partition["local"],partition["global"],0,
+            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
+        )
+        # os.makedirs("../log_no_where/",exist_ok=True)
+        # os.system("rm -r ../log_no_where/*")
+        # writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
