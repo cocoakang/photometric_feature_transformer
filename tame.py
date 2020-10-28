@@ -54,17 +54,17 @@ def log_quality(writer,quality_terms,global_step):
     writer.add_image("{}".format(term_key),quality_terms[term_key], global_step=global_step, dataformats='CHW')
 
 if __name__ == "__main__":
-    start_seed = 84057
-    torch.manual_seed(1827397)
-    torch.cuda.manual_seed_all(1827397)
+    start_seed = 8157
+    torch.manual_seed(182137)
+    torch.cuda.manual_seed_all(182137)
     random.seed(start_seed)
     np.random.seed(start_seed)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
 
@@ -94,13 +94,13 @@ if __name__ == "__main__":
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len
-    partition["local"] = 3
-    partition["global"] = 0
+    partition["local"] = 0
+    partition["global"] = 3
  
     dift_code_config = {}#dift_code_len,losslambda
     # dift_code_config["local_albedo"] = (3,1.0)
-    dift_code_config["local_noalbedo"] = (5,1.0)
-    dift_code_config["global"] = (0,1.0)
+    dift_code_config["local_noalbedo"] = (0,1.0)
+    dift_code_config["global"] = (5,10.0)
     if train_configs["training_mode"] == "finetune":
         dift_code_config["cat"] = (10,10.0)
 
@@ -144,10 +144,10 @@ if __name__ == "__main__":
         "pd" : 0.1,
         "ps" : 0.1
     }
-    train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,5721)
-    train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,5721,tmp_noise_config_train_hard)
+    train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,165491)
+    # train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,51721,tmp_noise_config_train_hard)
     train_mine_global.start()
-    train_mine_local.start()
+    # train_mine_local.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
     val_mine.start()
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_h".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -237,20 +237,20 @@ if __name__ == "__main__":
         )
         quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_m",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="local_albedo"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_m",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="global"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
     #     train_configs,
@@ -368,7 +368,7 @@ if __name__ == "__main__":
         # start = time.time()
         # end_time = [start]
         train_data_global = train_queue_global.get()
-        train_data_local = train_queue_local.get()
+        # train_data_local = train_queue_local.get()
         # end_time.append(time.time())
         # train_Semaphore.release()
         # print("got train")
