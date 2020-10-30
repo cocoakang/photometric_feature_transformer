@@ -62,13 +62,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_h",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_v",type=str,default="")
+    parser.add_argument("--pretrained_model_pan_h",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct28_11-38-07_Kang-Deep-Learninglearn_l2_ml3_mg0_dla0_dlna5_dg0_h/models/model_state_180000.pkl")
+    parser.add_argument("--pretrained_model_pan_v",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct28_12-20-37_Kang-Deep-Learninglearn_l2_ml0_mg3_dla0_dlna0_dg5_v/models/model_state_180000.pkl")
 
     args = parser.parse_args()
     
@@ -97,12 +97,12 @@ if __name__ == "__main__":
 
     partition = {}#m_len
     partition["local"] = 3
-    partition["global"] = 0
+    partition["global"] = 3
  
     dift_code_config = {}#dift_code_len,losslambda
     # dift_code_config["local_albedo"] = (3,1.0)
     dift_code_config["local_noalbedo"] = (5,1.0)
-    dift_code_config["global"] = (0,10.0)
+    dift_code_config["global"] = (5,10.0)
     if train_configs["training_mode"] == "finetune":
         dift_code_config["cat"] = (10,10.0)
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     lambdas = {}
     lambdas["E1"] = 1.0
     # lambdas["E2"] =1e-1
-    lambdas["reg_loss"] = 1.0
+    lambdas["reg_loss"] = 3.0
     train_configs["lambdas"] = lambdas
 
     train_configs["global_data_loss"] = 1.0
@@ -148,9 +148,9 @@ if __name__ == "__main__":
         "ps" : 0.1
     }
     train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,161491)
-    # train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,51721,tmp_noise_config_train_hard)
+    train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,51721,tmp_noise_config_train_hard)
     train_mine_global.start()
-    # train_mine_local.start()
+    train_mine_local.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
     val_mine.start()
 
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_h".format(
+        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_c_reg3".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -379,7 +379,7 @@ if __name__ == "__main__":
         # end_time.append(time.time())
         # train_Semaphore.release()
         # print("got train")
-        if True:#train_configs["training_mode"] == "pretrain":
+        if train_configs["training_mode"] == "pretrain":
             tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
             total_loss = tmp_total_loss
             loss_log_terms = tmp_loss_log_terms
