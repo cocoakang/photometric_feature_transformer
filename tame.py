@@ -54,23 +54,35 @@ def log_quality(writer,quality_terms,global_step):
     writer.add_image("{}".format(term_key),quality_terms[term_key], global_step=global_step, dataformats='CHW')
 
 if __name__ == "__main__":
-    start_seed = 8157
-    torch.manual_seed(182137)
-    torch.cuda.manual_seed_all(182137)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("data_root")
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--log_file_name",type=str,default="")
+    parser.add_argument("--pretrained_model_pan",type=str,default="")
+    parser.add_argument("--pretrained_model_pan_h",type=str,default="")
+    parser.add_argument("--pretrained_model_pan_v",type=str,default="")
+    parser.add_argument("--start_seed",type=int,default=84057)
+    parser.add_argument("--torch_manual_seed",type=int,default=1827397)
+    parser.add_argument("--torch_cuda_manual_seed_all",type=int,default=1827397)
+    parser.add_argument("--train_mine_seed",type=int,default=51721)
+    parser.add_argument("--val_mine_seed",type=int,default=992831)
+    parser.add_argument("--search_model",action="store_true")
+    parser.add_argument("--m_len",type=int,default=3)
+    parser.add_argument("--code_len",type=int,default=5)
+    parser.add_argument("--search_which",default="material",choices=["material","geometry"])
+
+    args = parser.parse_args()
+
+    start_seed = args.start_seed
+    torch.manual_seed(args.torch_manual_seed)
+    torch.cuda.manual_seed_all(args.torch_cuda_manual_seed_all)
     random.seed(start_seed)
     np.random.seed(start_seed)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
-    parser.add_argument("--log_file_name",type=str,default="")
-    parser.add_argument("--pretrained_model_pan",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_h",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct28_11-38-07_Kang-Deep-Learninglearn_l2_ml3_mg0_dla0_dlna5_dg0_h/models/model_state_180000.pkl")
-    parser.add_argument("--pretrained_model_pan_v",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/Oct28_12-20-37_Kang-Deep-Learninglearn_l2_ml0_mg3_dla0_dlna0_dg5_v/models/model_state_180000.pkl")
-
-    args = parser.parse_args()
+    if args.search_model:
+        MAX_ITR=100000
     
     ##########################################
     ### parser training configuration
@@ -96,13 +108,26 @@ if __name__ == "__main__":
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len
-    partition["local"] = 3
-    partition["global"] = 3
- 
     dift_code_config = {}#dift_code_len,losslambda
-    # dift_code_config["local_albedo"] = (3,1.0)
-    dift_code_config["local_noalbedo"] = (5,1.0)
-    dift_code_config["global"] = (5,10.0)
+    if args.search_model:
+        if args.search_which == "material":
+            partition["local"] = args.m_len
+            partition["global"] = 0
+            dift_code_config["local_noalbedo"] = (args.code_len,1.0)
+            dift_code_config["global"] = (0,10.0)
+        elif args.search_which == "geometry":
+            partition["local"] = 0
+            partition["global"] = args.m_len
+            dift_code_config["local_noalbedo"] = (0,1.0)
+            dift_code_config["global"] = (args.code_len,10.0)
+        else:
+            print("unkown search type")
+    else:
+        partition["local"] = 3
+        partition["global"] = 0
+        dift_code_config["local_noalbedo"] = (5,1.0)
+        dift_code_config["global"] = (0,10.0)
+
     if train_configs["training_mode"] == "finetune":
         dift_code_config["cat"] = (10,10.0)
 
@@ -117,7 +142,7 @@ if __name__ == "__main__":
     lambdas = {}
     lambdas["E1"] = 1.0
     # lambdas["E2"] =1e-1
-    lambdas["reg_loss"] = 3.0
+    lambdas["reg_loss"] = 1.0
     train_configs["lambdas"] = lambdas
 
     train_configs["global_data_loss"] = 1.0
@@ -147,18 +172,18 @@ if __name__ == "__main__":
         "pd" : 0.1,
         "ps" : 0.1
     }
-    train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,161491)
-    train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,51721,tmp_noise_config_train_hard)
+    train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,args.train_mine_seed)
+    # train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,51721,tmp_noise_config_train_hard)
     train_mine_global.start()
-    train_mine_local.start()
-    val_mine = Mine_Pro(train_configs,"val",val_queue,None,992831,None)
+    # train_mine_local.start()
+    val_mine = Mine_Pro(train_configs,"val",val_queue,None,args.val_mine_seed,None)
     val_mine.start()
 
-    tmp_noise_config = tmp_noise_config_train_hard.copy()
-    tmp_noise_config["frame_normal_v"] = 50.0
-    tmp_noise_config["frame_normal_h"] = 50.0
-    val_mine = Mine_Pro(train_configs,"val",val_queue_mine_a,None,992831,tmp_noise_config)
-    val_mine.start()
+    # tmp_noise_config = tmp_noise_config_train_hard.copy()
+    # tmp_noise_config["frame_normal_v"] = 50.0
+    # tmp_noise_config["frame_normal_h"] = 50.0
+    # val_mine = Mine_Pro(train_configs,"val",val_queue_mine_a,None,args.val_mine_seed,tmp_noise_config)
+    # val_mine.start()
     # tmp_noise_config["frame_normal_v"] = 50.0
     # tmp_noise_config["frame_normal_h"] = 10.0
     # val_mine = Mine_Pro(train_configs,"val",val_queue_mine_h,None,992831,tmp_noise_config)
@@ -186,7 +211,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(comment="learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_c_reg3".format(
+        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_h".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -208,7 +233,9 @@ if __name__ == "__main__":
         pf.write("-----------------")
         for parameter in training_net.parameters():
             pf.write("{}\n".format(parameter.shape))
-
+    with open(log_dir_model+"seeds.txt","w") as pf:
+        pf.write("{} {} {} {} {}\n".format(args.start_seed,args.torch_manual_seed,args.train_mine_seed,args.start_seed,args.val_mine_seed))
+        pf.write("m_len:{} code_len:{}\n".format(args.m_len,args.code_len))
     ###quality checker
     quality_checkers = []
 
@@ -271,18 +298,18 @@ if __name__ == "__main__":
     # )
     # quality_checkers.append(checker_textured_ball_1)
 
-    checker_golden_pig = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/golden_pig/metadata/",
-        "golden_pig_a",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        batch_size=500,
-        test_view_num=1,
-        test_in_grey=False,
-        check_type="a"
-    )
-    quality_checkers.append(checker_golden_pig)
+    # checker_golden_pig = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../../training_data/feature_pattern_models/golden_pig/metadata/",
+    #     "golden_pig_a",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     test_in_grey=False,
+    #     check_type="a"
+    # )
+    # quality_checkers.append(checker_golden_pig)
 
 
     start_step = 0
@@ -318,13 +345,15 @@ if __name__ == "__main__":
         ## 1 validate
         if global_step % VALIDATE_ITR == 0:
             # print("val queue size:",val_queue.qsize())
-            val_itr = global_step // VALIDATE_ITR
-            if val_itr % 2 == 0:
-                val_data = val_queue.get()
-                post_fix = "general"
-            elif val_itr % 2 == 1:
-                val_data = val_queue_mine_a.get()
-                post_fix = "LDCa"
+            # val_itr = global_step // VALIDATE_ITR
+            val_data = val_queue.get()
+            post_fix = "general"
+            # if val_itr % 2 == 0:
+            #     val_data = val_queue.get()
+            #     post_fix = "general"
+            # elif val_itr % 2 == 1:
+            #     val_data = val_queue_mine_a.get()
+            #     post_fix = "LDCa"
             # elif val_itr % 4 == 2:
             #     val_data = val_queue_mine_v.get()
             #     post_fix = "LDCv"
@@ -379,7 +408,7 @@ if __name__ == "__main__":
         # end_time.append(time.time())
         # train_Semaphore.release()
         # print("got train")
-        if train_configs["training_mode"] == "pretrain":
+        if True:#train_configs["training_mode"] == "pretrain":
             tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
             total_loss = tmp_total_loss
             loss_log_terms = tmp_loss_log_terms

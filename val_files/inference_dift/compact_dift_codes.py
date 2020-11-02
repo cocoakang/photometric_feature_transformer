@@ -53,16 +53,21 @@ if __name__ == "__main__":
     pca = PCA(n_components=3)
     # features_pca = pca.fit_transform(subfeatures[:,args.dift_code_len//2:])
     # features_pca = pca.fit_transform(subfeatures[:,:args.dift_code_len//2])
-    features_pca = pca.fit_transform(subfeatures)
-    feautre_min = np.min(features_pca,axis=0,keepdims=True)
-    feautre_max = np.max(features_pca,axis=0,keepdims=True)
+    have_pca_3 = False
+    if args.dift_code_len >= 3:
+        features_pca = pca.fit_transform(subfeatures)
+        feautre_min = np.min(features_pca,axis=0,keepdims=True)
+        feautre_max = np.max(features_pca,axis=0,keepdims=True)
+        have_pca_3 = True
     # features_pca = (features_pca - np.min(features_pca,axis=0,keepdims=True))/(np.max(features_pca,axis=0,keepdims=True)-np.min(features_pca,axis=0,keepdims=True))
     print("Done.")
     print("PCA to {}".format(args.colmap_code_len))
     test_dim = args.colmap_code_len
-    if not args.test_on_the_fly:
+    have_pca_code = False
+    if not args.test_on_the_fly and args.dift_code_len >= test_dim:
         pca2 = PCA(n_components=test_dim)
         features_pca2 = pca2.fit_transform(subfeatures)
+        have_pca_code = True
     print("Done.")
     
     ######step 3 draw features#################
@@ -85,9 +90,11 @@ if __name__ == "__main__":
         feature_origin = feature_origin
         #######visualize feature images
         tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
-        tmp_features_3 = pca.transform(feature_origin)
-        tmp_img[idxes[:,1],idxes[:,0]] = ((tmp_features_3-feautre_min)/(feautre_max-feautre_min))
-
+        if have_pca_3:
+            tmp_features_3 = pca.transform(feature_origin)
+            tmp_img[idxes[:,1],idxes[:,0]] = ((tmp_features_3-feautre_min)/(feautre_max-feautre_min))
+        else:
+            tmp_features_3 = np.concatenate([feature_origin,np.zeros((feature_origin.shape[0],3-feature_origin.shape[1]),np.float32)],axis=1)
         cv2.imwrite(feature_img_folder+"pd_predicted_{}_0.png".format(which_view),tmp_img[:,:,::-1]*255.0)
         #######visualize feature images
         # tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
@@ -98,7 +105,10 @@ if __name__ == "__main__":
         if not args.test_on_the_fly:
             ######save feature bin for colmap
             tmp_img = np.zeros([args.imgheight,args.imgwidth,test_dim],np.float32)
-            tmp_features = pca2.transform(feature_origin)
+            if have_pca_code:
+                tmp_features = pca2.transform(feature_origin)
+            else:
+                tmp_features = np.concatenate([feature_origin,np.zeros((feature_origin.shape[0],test_dim-feature_origin.shape[1]),np.float32)],axis=1)
             tmp_img[idxes[:,1],idxes[:,0]] = tmp_features
             # img_collector = []
             # for which_channel in range(test_dim):
