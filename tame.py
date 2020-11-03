@@ -71,6 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("--search_model",action="store_true")
     parser.add_argument("--m_len",type=int,default=3)
     parser.add_argument("--code_len",type=int,default=5)
+    parser.add_argument("--id",type=int,default=-1)
     parser.add_argument("--search_which",default="material",choices=["material","geometry"])
 
     args = parser.parse_args()
@@ -211,9 +212,9 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v".format(
+        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v{}".format(
             partition["local"],partition["global"],0,
-            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
+            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0],args.id)
         )
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
