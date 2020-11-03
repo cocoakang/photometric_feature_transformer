@@ -211,7 +211,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_h".format(
+        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
