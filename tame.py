@@ -16,9 +16,10 @@ sys.path.append(TORCH_RENDER_PATH)
 from torch_render import Setup_Config
 from multiprocessing import Queue
 import math
+import re
 
 
-MAX_ITR = 5000000
+MAX_ITR = 300000
 VALIDATE_ITR = 5
 CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
@@ -53,6 +54,23 @@ def log_quality(writer,quality_terms,global_step):
     term_key = "distance_matrix"
     writer.add_image("{}".format(term_key),quality_terms[term_key], global_step=global_step, dataformats='CHW')
 
+def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
+    x = re.search("learn_l2_ml", pretrained_model_pan_h)
+    start_idx = x.start()+len("learn_l2_ml")
+    m_m_len = int(pretrained_model_pan_h[start_idx:start_idx+1])
+    x = re.search("_dlna", pretrained_model_pan_h)
+    start_idx = x.start()+len("_dlna")
+    m_d_len = int(pretrained_model_pan_h[start_idx:start_idx+1])
+
+    x = re.search("_mg", pretrained_model_pan_v)
+    start_idx = x.start()+len("_mg")
+    g_m_len = int(pretrained_model_pan_v[start_idx:start_idx+1])
+    x = re.search("_dg", pretrained_model_pan_v)
+    start_idx = x.start()+len("_dg")
+    g_d_len = int(pretrained_model_pan_v[start_idx:start_idx+1])
+
+    return m_m_len,m_d_len,g_m_len,g_d_len
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
@@ -61,8 +79,8 @@ if __name__ == "__main__":
     parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_h",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_v",type=str,default="")
+    parser.add_argument("--pretrained_model_pan_h",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/model_trained/search_model_material/learn_l2_ml7_mg0_dla0_dlna9_dg0_h/models/model_state_90000.pkl")
+    parser.add_argument("--pretrained_model_pan_v",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/model_trained/search_model_geometry/learn_l2_ml0_mg3_dla0_dlna0_dg7_v2/models/model_state_90000.pkl")
     parser.add_argument("--start_seed",type=int,default=84057)
     parser.add_argument("--torch_manual_seed",type=int,default=1827397)
     parser.add_argument("--torch_cuda_manual_seed_all",type=int,default=1827397)
@@ -124,13 +142,18 @@ if __name__ == "__main__":
         else:
             print("unkown search type")
     else:
-        partition["local"] = 3
-        partition["global"] = 0
-        dift_code_config["local_noalbedo"] = (5,1.0)
-        dift_code_config["global"] = (0,10.0)
-
-    if train_configs["training_mode"] == "finetune":
-        dift_code_config["cat"] = (10,10.0)
+        if train_configs["training_mode"] == "pretrain":
+            partition["local"] = 3
+            partition["global"] = 0
+            dift_code_config["local_noalbedo"] = (5,1.0)
+            dift_code_config["global"] = (0,10.0)
+        elif train_configs["training_mode"] == "finetune":
+            m_m_len,m_d_len,g_m_len,g_d_len = parse_vh_config(args.pretrained_model_pan_h,args.pretrained_model_pan_v)
+            partition["local"] = m_m_len
+            partition["global"] = g_m_len
+            dift_code_config["local_noalbedo"] = (m_d_len,1.0)
+            dift_code_config["global"] = (g_d_len,10.0)
+            dift_code_config["cat"] = (m_d_len+g_d_len,10.0)
 
     train_configs["measurements_length"] = sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
@@ -212,9 +235,9 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v{}".format(
+        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v".format(
             partition["local"],partition["global"],0,
-            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0],args.id)
+            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
@@ -271,6 +294,21 @@ if __name__ == "__main__":
             check_type="global"
         )
         quality_checkers.append(checker_uniform_mirror_ball)
+
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_a",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="a"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
     #     train_configs,
@@ -409,19 +447,9 @@ if __name__ == "__main__":
         # end_time.append(time.time())
         # train_Semaphore.release()
         # print("got train")
-        if True:#train_configs["training_mode"] == "pretrain":
-            tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
-            total_loss = tmp_total_loss
-            loss_log_terms = tmp_loss_log_terms
-        elif train_configs["training_mode"] == "finetune":
-            train_data_local = train_queue_local.get()
-            tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
-            total_loss = tmp_total_loss*train_configs["global_data_loss"]
-            loss_log_terms = tmp_loss_log_terms
-            tmp_total_loss,tmp_loss_log_terms = training_net(train_data_local,global_step=global_step)
-            total_loss = total_loss+tmp_total_loss*train_configs["local_data_loss"]
-            for a_key in loss_log_terms:
-                loss_log_terms[a_key] = loss_log_terms[a_key]+tmp_loss_log_terms[a_key]
+        tmp_total_loss,tmp_loss_log_terms = training_net(train_data_global,global_step=global_step)
+        total_loss = tmp_total_loss
+        loss_log_terms = tmp_loss_log_terms
         
         # end_time.append(time.time())
         total_loss.backward()

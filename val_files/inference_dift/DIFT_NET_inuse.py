@@ -22,14 +22,14 @@ class DIFT_NET_inuse(nn.Module):
         self.setup = setup
 
         partition = {
-            "local":3,
+            "local":5,
             "global":3
         }
 
         dift_code_config = {
-            "local_noalbedo":(5,-1.0),
-            "global":(5,-1.0),
-            "cat":(10,-1.0)
+            "local_noalbedo":(9,-1.0),
+            "global":(7,-1.0),
+            "cat":(16,-1.0)
         }
 
         training_configs = {

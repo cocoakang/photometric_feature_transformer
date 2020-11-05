@@ -1,8 +1,8 @@
 @echo off
-SET SAVE_ROOT="D:/CVPR21_freshmeat/10_28_robust2/"
+SET SAVE_ROOT="D:/CVPR21_freshmeat/11_4_sc1/"
 SET TASK_NAME="no_need_to_fill_in"
 SET SAMPLE_VIEW_NUM=24
-SET MODEL_PATH[0]="D:/CVPR21_models/10_28_robust2/models/"
+SET MODEL_PATH[0]="D:/CVPR21_models/11_4_sc_m5_g3_md9_gd7/models/"
 SET BLANK= 
 SET ALL_PATHS=
 SET "MODEL_NUM=0" 
