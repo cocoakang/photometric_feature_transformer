@@ -3,3 +3,5 @@ runs/
 .vscode/
 
 sw/
+
+test_lumi_diligent/

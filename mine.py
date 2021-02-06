@@ -13,7 +13,7 @@ param_bounds["theta"] = (0.0,math.pi)
 param_bounds["a"] = (0.006,0.503)
 param_bounds["pd"] = (0.0,1.0)
 param_bounds["ps"] = (0.0,10.0)
-param_bounds["box"] = (-75.0,75.0)
+param_bounds["box"] = (-100.0,100.0)
 param_bounds["angle"] = (0.0,2.0*math.pi)
 
 class Mine:
@@ -109,10 +109,7 @@ class Mine:
         return tmp_color.astype(np.float32)
 
     def generate_batch_positions(self,batch_size):
-        return np.concatenate([
-            np.random.uniform(param_bounds["box"][0],param_bounds["box"][1],[batch_size,2]),
-            np.random.uniform(-30.0,120.0,[batch_size,1])
-        ],axis=-1).astype(np.float32)
+        return np.random.uniform(param_bounds["box"][0],param_bounds["box"][1],[batch_size,3]).astype(np.float32)
 
     def generate_training_data(self,test_tangent_flag = False):
         tmp_params = self.buffer_params[self.current_ptr:self.current_ptr+self.batch_size]
