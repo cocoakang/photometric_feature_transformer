@@ -13,7 +13,7 @@ import numpy as np
 import os
 TORCH_RENDER_PATH="../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
-from torch_render import Setup_Config
+from torch_render import Setup_Config_Freeform
 from multiprocessing import Queue
 import math
 import re
@@ -79,8 +79,8 @@ if __name__ == "__main__":
     parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_h",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/model_trained/search_model_material/learn_l2_ml7_mg0_dla0_dlna9_dg0_h/models/model_state_90000.pkl")
-    parser.add_argument("--pretrained_model_pan_v",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/model_trained/search_model_geometry/learn_l2_ml0_mg3_dla0_dlna0_dg7_v2/models/model_state_90000.pkl")
+    parser.add_argument("--pretrained_model_pan_h",type=str,default="")
+    parser.add_argument("--pretrained_model_pan_v",type=str,default="")
     parser.add_argument("--start_seed",type=int,default=84057)
     parser.add_argument("--torch_manual_seed",type=int,default=1827397)
     parser.add_argument("--torch_cuda_manual_seed_all",type=int,default=1827397)
@@ -109,9 +109,9 @@ if __name__ == "__main__":
 
     ##about rendering devices
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv/"
     }
-    setup_input = Setup_Config(standard_rendering_parameters)
+    setup_input = Setup_Config_Freeform(standard_rendering_parameters)
 
     ##build train_configs
     train_configs = {}
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             dift_code_config["global"] = (g_d_len,10.0)
             dift_code_config["cat"] = (m_d_len+g_d_len,10.0)
 
-    train_configs["measurements_length"] = sum([partition[a_key] for a_key in partition])
+    train_configs["measurements_length"] = setup_input.get_light_num()#sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
     train_configs["dift_code_config"] = dift_code_config
     if train_configs["training_mode"] == "pretrain":
@@ -197,32 +197,16 @@ if __name__ == "__main__":
         "ps" : 0.1
     }
     train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,args.train_mine_seed)
-    # train_mine_local = Mine_Pro(train_configs,"train",train_queue_local,None,51721,tmp_noise_config_train_hard)
     train_mine_global.start()
-    # train_mine_local.start()
     val_mine = Mine_Pro(train_configs,"val",val_queue,None,args.val_mine_seed,None)
     val_mine.start()
-
-    # tmp_noise_config = tmp_noise_config_train_hard.copy()
-    # tmp_noise_config["frame_normal_v"] = 50.0
-    # tmp_noise_config["frame_normal_h"] = 50.0
-    # val_mine = Mine_Pro(train_configs,"val",val_queue_mine_a,None,args.val_mine_seed,tmp_noise_config)
-    # val_mine.start()
-    # tmp_noise_config["frame_normal_v"] = 50.0
-    # tmp_noise_config["frame_normal_h"] = 10.0
-    # val_mine = Mine_Pro(train_configs,"val",val_queue_mine_h,None,992831,tmp_noise_config)
-    # val_mine.start()
-    # tmp_noise_config["frame_normal_v"] = 10.0
-    # tmp_noise_config["frame_normal_h"] = 50.0
-    # val_mine = Mine_Pro(train_configs,"val",val_queue_mine_v,None,992831,tmp_noise_config)
-    # val_mine.start()
     
     ##########################################
     ### net and optimizer
     ##########################################
     training_net = DIFT_TRAIN_NET(train_configs)
     training_net.to(train_configs["training_device"])
-    
+
     if train_configs["training_mode"] == "finetune":
         training_net.load_pretrained_models(args.pretrained_model_pan_h,args.pretrained_model_pan_v)
 
@@ -235,10 +219,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v".format(
-            partition["local"],partition["global"],0,
-            dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
-        )
+        writer = SummaryWriter(log_dir="runs/diligent_normal")
         # os.makedirs("../log_no_where/",exist_ok=True)
         # os.system("rm -r ../log_no_where/*")
         # writer = SummaryWriter(log_dir="../log_no_where/")
@@ -263,92 +244,92 @@ if __name__ == "__main__":
     ###quality checker
     quality_checkers = []
 
-    if dift_code_config["local_noalbedo"][0] > 0:
-        checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-            train_configs,
-            log_dir,
-            "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-            "uniform_mirror_ball_gh",
-            torch.device("cuda:{}".format(args.checker_gpu)),
-            axay=(0.05,0.05),
-            diff_albedo=0.5,
-            spec_albedo=3.0,
-            batch_size=500,
-            test_view_num=1,
-            check_type="local_noalbedo"
-        )
-        quality_checkers.append(checker_uniform_mirror_ball)
+    # if dift_code_config["local_noalbedo"][0] > 0:
+    #     checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #         train_configs,
+    #         log_dir,
+    #         "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #         "uniform_mirror_ball_gh",
+    #         torch.device("cuda:{}".format(args.checker_gpu)),
+    #         axay=(0.05,0.05),
+    #         diff_albedo=0.5,
+    #         spec_albedo=3.0,
+    #         batch_size=500,
+    #         test_view_num=1,
+    #         check_type="local_noalbedo"
+    #     )
+    #     quality_checkers.append(checker_uniform_mirror_ball)
 
-    if dift_code_config["global"][0] > 0:
-        checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-            train_configs,
-            log_dir,
-            "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-            "uniform_mirror_ball_gv",
-            torch.device("cuda:{}".format(args.checker_gpu)),
-            axay=(0.05,0.05),
-            diff_albedo=0.5,
-            spec_albedo=3.0,
-            batch_size=500,
-            test_view_num=1,
-            check_type="global"
-        )
-        quality_checkers.append(checker_uniform_mirror_ball)
-
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_a",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="a"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # if dift_code_config["global"][0] > 0:
+    #     checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #         train_configs,
+    #         log_dir,
+    #         "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #         "uniform_mirror_ball_gv",
+    #         torch.device("cuda:{}".format(args.checker_gpu)),
+    #         axay=(0.05,0.05),
+    #         diff_albedo=0.5,
+    #         spec_albedo=3.0,
+    #         batch_size=500,
+    #         test_view_num=1,
+    #         check_type="global"
+    #     )
+    #     quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
     #     train_configs,
     #     log_dir,
     #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_m",
+    #     "uniform_mirror_ball_a",
     #     torch.device("cuda:{}".format(args.checker_gpu)),
     #     axay=(0.05,0.05),
     #     diff_albedo=0.5,
     #     spec_albedo=3.0,
     #     batch_size=500,
     #     test_view_num=1,
-    #     check_type="global"
+    #     check_type="a"
     # )
     # quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/textured_ball_1/metadata/",
-    #     "textured_ball_1",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="local_albedo"
-    # )
-    # quality_checkers.append(checker_textured_ball_1)
+    # # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    # #     train_configs,
+    # #     log_dir,
+    # #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    # #     "uniform_mirror_ball_m",
+    # #     torch.device("cuda:{}".format(args.checker_gpu)),
+    # #     axay=(0.05,0.05),
+    # #     diff_albedo=0.5,
+    # #     spec_albedo=3.0,
+    # #     batch_size=500,
+    # #     test_view_num=1,
+    # #     check_type="global"
+    # # )
+    # # quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_golden_pig = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/golden_pig/metadata/",
-    #     "golden_pig_a",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     test_in_grey=False,
-    #     check_type="a"
-    # )
-    # quality_checkers.append(checker_golden_pig)
+    # # checker_textured_ball_1 = DIFT_QUALITY_CHECKER(
+    # #     train_configs,
+    # #     log_dir,
+    # #     "../../training_data/feature_pattern_models/textured_ball_1/metadata/",
+    # #     "textured_ball_1",
+    # #     torch.device("cuda:{}".format(args.checker_gpu)),
+    # #     batch_size=500,
+    # #     test_view_num=1,
+    # #     check_type="local_albedo"
+    # # )
+    # # quality_checkers.append(checker_textured_ball_1)
+
+    # # checker_golden_pig = DIFT_QUALITY_CHECKER(
+    # #     train_configs,
+    # #     log_dir,
+    # #     "../../training_data/feature_pattern_models/golden_pig/metadata/",
+    # #     "golden_pig_a",
+    # #     torch.device("cuda:{}".format(args.checker_gpu)),
+    # #     batch_size=500,
+    # #     test_view_num=1,
+    # #     test_in_grey=False,
+    # #     check_type="a"
+    # # )
+    # # quality_checkers.append(checker_golden_pig)
 
 
     start_step = 0
@@ -405,24 +386,24 @@ if __name__ == "__main__":
                 training_net.eval()
                 _,loss_log_terms = training_net(val_data,global_step=global_step,call_type="val")
             log_loss(writer,loss_log_terms,global_step,False,post_fix=post_fix)
-            
-        ## 2 check quality
-        if global_step % CHECK_QUALITY_ITR == 0 or global_step == 1000:
-            # print("val queue size:",val_queue.qsize())
-            val_data = val_queue.get()
-            # val_Semaphore.release()
-            # print("got check")
-            with torch.no_grad():
-                training_net.eval()
-                quality_terms = training_net(val_data,call_type="check_quality",global_step=global_step)
-            log_quality(writer,quality_terms,global_step)
 
-            #check with real(real fake) data
-            with torch.no_grad():
-                for a_checker in quality_checkers:
-                    print("========")
-                    training_net.eval()
-                    a_checker.check_quality(training_net,writer,global_step)
+        ## 2 check quality
+        # if global_step % CHECK_QUALITY_ITR == 0 or global_step == 1000:
+        #     # print("val queue size:",val_queue.qsize())
+        #     val_data = val_queue.get()
+        #     # val_Semaphore.release()
+        #     # print("got check")
+        #     with torch.no_grad():
+        #         training_net.eval()
+        #         quality_terms = training_net(val_data,call_type="check_quality",global_step=global_step)
+        #     log_quality(writer,quality_terms,global_step)
+
+        #     #check with real(real fake) data
+        #     with torch.no_grad():
+        #         for a_checker in quality_checkers:
+        #             print("========")
+        #             training_net.eval()
+        #             a_checker.check_quality(training_net,writer,global_step)
 
         ## 3 save model
         if global_step % SAVE_MODEL_ITR == 0 and global_step != 0:
@@ -470,3 +451,4 @@ if __name__ == "__main__":
         #     break
         # break
     writer.close()
+    print("o wa ru yo~")
