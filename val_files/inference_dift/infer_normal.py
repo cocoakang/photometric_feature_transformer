@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_root",default="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/buddhaPNG//view_01/")
     parser.add_argument("--model_root",default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/diligent_normal/models/")
-    parser.add_argument("--model_file_name",default="model_state_60000.pkl")
+    parser.add_argument("--model_file_name",default="model_state_180000.pkl")
 
     # parser.add_argument("sample_view_num",type=int)
     # parser.add_argument("rotate_num",type=int)
