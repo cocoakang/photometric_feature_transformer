@@ -39,14 +39,14 @@ if __name__ == "__main__":
     model_dict = nn_model.state_dict()
     something_not_found=False
     for k,_ in model_dict.items():
-        if k not in pretrained_dict and "linear_projection" not in k:
+        if k not in pretrained_dict:
             print("not found:",k)
             something_not_found = True
     if something_not_found:
         exit()
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
     model_dict.update(pretrained_dict) 
-    # nn_model.load_state_dict(model_dict)
+    nn_model.load_state_dict(model_dict)
     nn_model.to(inference_device)
     nn_model.eval()
     
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     ################################################
     ####infer here
     ################################################
-    sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=args.sample_view_num,endpoint=False)
+    sampled_rotate_angles_np = np.linspace(0.0,-math.pi*2.0,num=args.sample_view_num,endpoint=False)
     sampled_rotate_angles_np = np.expand_dims(sampled_rotate_angles_np,axis=0).astype(np.float32)
 
     for which_view in range(args.rotate_num):
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         os.makedirs(cur_save_root,exist_ok=True)
         measurments = np.fromfile(cur_root+"cam00_data_{}_nocc_compacted.bin".format(args.measurement_len),np.float32).reshape([-1,3,args.measurement_len])
         measurments = measurments.reshape(-1,args.measurement_len)
-        measurments = measurments * args.scalar
+        # measurments = measurments * args.scalar
 
         pf_save = open(cur_save_root+"feature.bin".format(which_view),"wb")
         pf_save_normal = open(cur_save_root+"normal.bin".format(which_view),"wb")

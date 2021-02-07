@@ -228,10 +228,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        # writer = SummaryWriter(log_dir="runs/diligent_normal")
-        os.makedirs("../log_no_where2/",exist_ok=True)
-        os.system("rm -r ../log_no_where2/*")
-        writer = SummaryWriter(log_dir="../log_no_where2/")
+        writer = SummaryWriter(log_dir="runs/diligent_global")
+        # os.makedirs("../log_no_where2/",exist_ok=True)
+        # os.system("rm -r ../log_no_where2/*")
+        # writer = SummaryWriter(log_dir="../log_no_where2/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()

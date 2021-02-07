@@ -8,13 +8,13 @@ import sys
 TORCH_RENDER_PATH="../../../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
 from torch_render import Setup_Config
-from DIFT_NET_NORMAL_inuse import DIFT_NET_NORMAL_inuse
+from DIFT_NET_inuse import DIFT_NET_inuse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_root",default="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/buddhaPNG/")
-    parser.add_argument("--model_root",default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/diligent_normal/models/")
-    parser.add_argument("--model_file_name",default="model_state_180000.pkl")
+    parser.add_argument("--model_root",default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/log_no_where2/models/")
+    parser.add_argument("--model_file_name",default="model_state_30000.pkl")
     parser.add_argument("--view_num",type=int,default=20)
 
     # parser.add_argument("sample_view_num",type=int)
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     ################################################
     #####load net
     #################################################
-    nn_model = DIFT_NET_NORMAL_inuse(args)
+    nn_model = DIFT_NET_inuse(args)
     pretrained_dict = torch.load(args.model_root + args.model_file_name, map_location='cuda:3')
     print("loading trained model...")
     model_dict = nn_model.state_dict()
@@ -66,7 +66,7 @@ if __name__ == "__main__":
                 break
             tmp_measurements = torch.from_numpy(tmp_measurements).to("cuda:3")
             with torch.no_grad():
-                dift_codes = nn_model(tmp_measurements)
+                dift_codes = nn_model(tmp_measurements,None,get_normal=True)
             
             dift_codes = dift_codes.cpu().numpy()
             dift_codes.astype(np.float32).tofile(pf_save)

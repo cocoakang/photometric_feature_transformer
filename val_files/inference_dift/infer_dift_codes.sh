@@ -2,7 +2,7 @@
 
 DATA_ROOT="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/buddhaPNG/"
 MODEL_ROOT="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/log_no_where2/models/"
-MODEL_FILE_NAME="model_state_90000.pkl"
+MODEL_FILE_NAME="model_state_60000.pkl"
 
 SAMPLE_VIEW_NUM=20
 ROTATE_VIEW_NUM=20
