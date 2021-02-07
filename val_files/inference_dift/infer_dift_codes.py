@@ -46,7 +46,7 @@ if __name__ == "__main__":
         exit()
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
     model_dict.update(pretrained_dict) 
-    nn_model.load_state_dict(model_dict)
+    # nn_model.load_state_dict(model_dict)
     nn_model.to(inference_device)
     nn_model.eval()
     

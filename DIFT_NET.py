@@ -31,6 +31,8 @@ class DIFT_NET(nn.Module):
             self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(input_size,args["dift_code_config"]["global"][0])
         # self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
         if self.training_mode == "finetune":
+            print("not ready")
+            exit()
             self.catnet = DIFT_NET_CONCAT(self.dift_code_config)
         
     def forward(self,batch_data,cossin,return_origin_codes=False):
@@ -62,6 +64,8 @@ class DIFT_NET(nn.Module):
             origin_codes_map["global"] = dift_codes_g_diff_global
 
         if len(code_list) > 1:
+            print("not ready")
+            exit()
             dift_codes = torch.cat(code_list,dim=1)
         else:
             dift_codes = code_list[0]#

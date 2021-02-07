@@ -51,6 +51,7 @@ class DIFT_TRAIN_NET(nn.Module):
         # self.linear_projection = DIFT_linear_projection(args)
         # self.albedo_net = ALBEDO_NET(args)
         self.dift_net = DIFT_NET(args)
+        self.dift_net_normal = DIFT_NET_NORMAL(args)
         # self.material_net = SIGA20_NET_material(args)
         # self.decompose_net = SIGA20_NET_m_decompose(args)
         self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
@@ -160,6 +161,7 @@ class DIFT_TRAIN_NET(nn.Module):
         dift_codes_full,origin_codes_map = self.dift_net(measurements,cossin,True)#(2*batch,diftcodelen)
         dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
         # dift_codes = self.dift_net(measurements,cossin)
+        predicted_normal = self.dift_net_normal(measurements)
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################
@@ -242,10 +244,10 @@ class DIFT_TRAIN_NET(nn.Module):
         # if self.training_mode == "finetune":
         #     reg_loss = self.regularizer(self.dift_net.catnet)
 
-        # normal_loss = self.l2_loss_fn(predicted_normal,normal_label) 
+        normal_loss = self.l2_loss_fn(predicted_normal,normal_label) 
 
         
-        total_loss = E1*self.lambdas["E1"]
+        total_loss = E1*self.lambdas["E1"] + normal_loss
         # if self.training_mode == "finetune":
         #     total_loss = total_loss + reg_loss*self.lambdas["reg_loss"]#+E2*self.lambdas["E2"]
 
@@ -254,6 +256,7 @@ class DIFT_TRAIN_NET(nn.Module):
             # "albedo_value_diff_loss":albedo_loss_diff.item(),
             # "albedo_value_spec_loss":albedo_loss_spec.item(),
             "e1_loss":E1.item(),
+            "normal_loss":normal_loss.item(),
             # "e2_loss":E2.item(),
             "total_loss":total_loss.item(),
         }

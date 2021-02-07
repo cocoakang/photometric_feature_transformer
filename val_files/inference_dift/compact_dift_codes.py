@@ -76,8 +76,13 @@ if __name__ == "__main__":
     ptr = 0
     feature_file_bin_head = np.array([args.imgwidth,args.imgheight,test_dim],np.int32)
     for which_view in range(args.rotate_num):
-        with open(args.root+"view_{:02d}/cam00_index_nocc.bin".format(which_view+1),"rb") as pf:
-            # pixel_num = np.fromfile(pf,np.int32,1)[0]
+        if args.test_on_the_fly:
+            file_name = args.root+"{}/cam00_index_nocc.bin".format(which_view)
+        else:
+            file_name = args.root+"view_{:02d}/cam00_index_nocc.bin".format(which_view+1)
+        with open(file_name,"rb") as pf:
+            if args.test_on_the_fly:
+                pixel_num = np.fromfile(pf,np.int32,1)[0]
             idxes = np.fromfile(pf,np.int32).reshape([-1,2])
             # assert idxes.shape[0] == pixel_num,"index.shape[0]={} pixel_num={}".format(idxes.shape[0],pixel_num)
             # print("pixel num:{}".format(pixel_num))

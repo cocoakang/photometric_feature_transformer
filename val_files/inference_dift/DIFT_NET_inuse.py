@@ -70,5 +70,5 @@ class DIFT_NET_inuse(nn.Module):
         # infered_dift_codes = torch.cat([infered_dift_codes_g,infered_dift_codes_m],dim=1)
 
         infered_dift_codes = self.dift_net(batch_data,cossin)
-
+        
         return infered_dift_codes

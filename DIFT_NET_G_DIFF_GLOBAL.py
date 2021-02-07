@@ -234,7 +234,9 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
         # view_codes = self.view_part(torch.zeros_like(view_ids_cossin))
 
         x_n = batch_data.reshape(batch_size,self.measurements_length)
+        # print(x_n)
         x_n = torch.nn.functional.normalize(x_n,dim=1)
+        # print(x_n)
         # x_n = x_n.reshape(batch_size,-1)
         # x_n = torch.cat([x_n,view_codes],dim=1)
 
@@ -248,5 +250,7 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
         dift_codes_normal = torch.nn.functional.normalize(dift_codes_normal,dim=1)
 
         dift_codes = dift_codes_normal#torch.cat([dift_codes_pos,dift_codes_normal],dim=1)
+        # print(dift_codes)
+        # exit()
 
         return dift_codes#,torch.zeros(batch_size,3,dtype=torch.float32)
