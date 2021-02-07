@@ -18,7 +18,6 @@ from multiprocessing import Queue
 import math
 import re
 
-
 MAX_ITR = 300000
 VALIDATE_ITR = 5
 CHECK_QUALITY_ITR=5000
@@ -90,7 +89,7 @@ if __name__ == "__main__":
     parser.add_argument("--m_len",type=int,default=3)
     parser.add_argument("--code_len",type=int,default=5)
     parser.add_argument("--id",type=int,default=-1)
-    parser.add_argument("--search_which",default="material",choices=["material","geometry"])
+    parser.add_argument("--search_which",default="geometry",choices=["material","geometry"])
 
     args = parser.parse_args()
 
@@ -129,6 +128,8 @@ if __name__ == "__main__":
     partition = {}#m_len
     dift_code_config = {}#dift_code_len,losslambda
     if args.search_model:
+        print("not ready")
+        exit()
         if args.search_which == "material":
             partition["local"] = args.m_len
             partition["global"] = 0
@@ -143,11 +144,13 @@ if __name__ == "__main__":
             print("unkown search type")
     else:
         if train_configs["training_mode"] == "pretrain":
-            partition["local"] = 3
-            partition["global"] = 0
-            dift_code_config["local_noalbedo"] = (5,1.0)
-            dift_code_config["global"] = (0,10.0)
+            partition["local"] = 0
+            partition["global"] = setup_input.get_light_num()
+            dift_code_config["local_noalbedo"] = (0,1.0)
+            dift_code_config["global"] = (5,10.0)
         elif train_configs["training_mode"] == "finetune":
+            print("not ready")
+            exit()
             m_m_len,m_d_len,g_m_len,g_d_len = parse_vh_config(args.pretrained_model_pan_h,args.pretrained_model_pan_v)
             partition["local"] = m_m_len
             partition["global"] = g_m_len
@@ -161,6 +164,8 @@ if __name__ == "__main__":
     if train_configs["training_mode"] == "pretrain":
         train_configs["dift_code_len"] = sum([dift_code_config[a_key][0] for a_key in dift_code_config if a_key != "cat"])
     else:
+        print("not ready")
+        exit()
         train_configs["dift_code_len"] = dift_code_config["cat"][0]
 
     lambdas = {}
@@ -180,13 +185,13 @@ if __name__ == "__main__":
     ### data loader
     ##########################################
     # train_Semaphore = Semaphore(100)
-    train_queue_local = Queue(10)
+    # train_queue_local = Queue(10)
     train_queue_global = Queue(10)
     # val_Semaphore = Semaphore(50)
     val_queue = Queue(3)
     # val_queue_mine_v = Queue(3)
     # val_queue_mine_h = Queue(3)
-    val_queue_mine_a = Queue(3)
+    # val_queue_mine_a = Queue(3)
     tmp_noise_config_train_hard = {
         "position" : 2,
         "frame_normal_v" : 50.0,
@@ -219,10 +224,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/diligent_normal")
-        # os.makedirs("../log_no_where/",exist_ok=True)
-        # os.system("rm -r ../log_no_where/*")
-        # writer = SummaryWriter(log_dir="../log_no_where/")
+        # writer = SummaryWriter(log_dir="runs/diligent_normal")
+        os.makedirs("../log_no_where/",exist_ok=True)
+        os.system("rm -r ../log_no_where/*")
+        writer = SummaryWriter(log_dir="../log_no_where/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()

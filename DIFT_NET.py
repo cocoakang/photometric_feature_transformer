@@ -24,9 +24,11 @@ class DIFT_NET(nn.Module):
         
         # self.albedo_part = DIFT_NET_ALBEDO(args,args["partition"]["local"],args["dift_code_config"]["local_albedo"][0])
         if self.dift_code_config["local_noalbedo"][0] > 0:
-            self.g_diff_local_part = DIFT_NET_G_DIFF_LOCAL(args,args["partition"]["local"],args["dift_code_config"]["local_noalbedo"][0])
+            print("not ready")
+            exit()
+            self.g_diff_local_part = DIFT_NET_G_DIFF_LOCAL(input_size,args["dift_code_config"]["local_noalbedo"][0])
         if self.dift_code_config["global"][0] > 0:
-            self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(args,args["partition"]["global"],args["dift_code_config"]["global"][0])
+            self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(input_size,args["dift_code_config"]["global"][0])
         # self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
         if self.training_mode == "finetune":
             self.catnet = DIFT_NET_CONCAT(self.dift_code_config)
@@ -42,24 +44,22 @@ class DIFT_NET(nn.Module):
         device = batch_data.device
 
         x_n = batch_data.reshape(batch_size,self.measurements_length)
-        
-        m_ptr = 0
     
         # dift_codes_albedo = self.albedo_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
 
         code_list = []
         origin_codes_map = {}
         if self.dift_code_config["local_noalbedo"][0] > 0:
-            dift_codes_g_diff_local = self.g_diff_local_part(x_n[:,m_ptr:m_ptr+self.partition["local"]],cossin)
+            print("not ready")
+            exit()
+            dift_codes_g_diff_local = self.g_diff_local_part(x_n,cossin)
             code_list.append(dift_codes_g_diff_local)
             origin_codes_map["local_noalbedo"] = dift_codes_g_diff_local
-            m_ptr += self.partition["local"]
 
         if self.dift_code_config["global"][0] > 0:
-            dift_codes_g_diff_global = self.g_diff_global_part(x_n[:,m_ptr:m_ptr+self.partition["global"]],cossin)
+            dift_codes_g_diff_global = self.g_diff_global_part(x_n,cossin)
             code_list.append(dift_codes_g_diff_global)
             origin_codes_map["global"] = dift_codes_g_diff_global
-            m_ptr+=self.partition["global"]
 
         if len(code_list) > 1:
             dift_codes = torch.cat(code_list,dim=1)
@@ -67,6 +67,8 @@ class DIFT_NET(nn.Module):
             dift_codes = code_list[0]#
         
         if self.training_mode == "finetune":
+            print("not ready")
+            exit()
             dift_codes = self.catnet(dift_codes)
         
 

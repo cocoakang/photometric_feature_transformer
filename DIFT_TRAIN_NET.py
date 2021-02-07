@@ -18,6 +18,7 @@ from torch_render import Setup_Config
 from DIFT_linear_projection import DIFT_linear_projection
 from ALBEDO_NET import ALBEDO_NET
 from DIFT_NET_NORMAL import DIFT_NET_NORMAL
+from DIFT_NET import DIFT_NET
 
 class DIFT_TRAIN_NET(nn.Module):
     def __init__(self,args):
@@ -47,9 +48,9 @@ class DIFT_TRAIN_NET(nn.Module):
         ########################################
 
         # self.denoising_net = SIGA20_NET_denoising(args)
-        self.linear_projection = DIFT_linear_projection(args)
+        # self.linear_projection = DIFT_linear_projection(args)
         # self.albedo_net = ALBEDO_NET(args)
-        self.dift_net = DIFT_NET_NORMAL(args)
+        self.dift_net = DIFT_NET(args)
         # self.material_net = SIGA20_NET_material(args)
         # self.decompose_net = SIGA20_NET_m_decompose(args)
         self.l2_loss_fn = torch.nn.MSELoss(reduction='sum')
@@ -132,6 +133,7 @@ class DIFT_TRAIN_NET(nn.Module):
         #1 first we project every lumitexel to measurements
         input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
         measurements = input_lumis#self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
+        #TODO add noise here
         
         # measurements_for_albedo = measurements[:,:self.partition["albedo"][0]]
         # measurements_for_dift = measurements[:,self.partition["albedo"][0]:]
@@ -155,54 +157,54 @@ class DIFT_TRAIN_NET(nn.Module):
         )
 
         # dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,param_2[:,[5]],param_2[:,[6]],True)#(2*batch,diftcodelen)
-        # dift_codes_full,origin_codes_map = self.dift_net(measurements,cossin,True)#(2*batch,diftcodelen)
-        # dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
-        predicted_normal = self.dift_net(measurements)
+        dift_codes_full,origin_codes_map = self.dift_net(measurements,cossin,True)#(2*batch,diftcodelen)
+        dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
+        # dift_codes = self.dift_net(measurements,cossin)
         ############################################################################################################################
         ## step 3 compute loss
         ############################################################################################################################
-        # E1_loss_map = {}
-        # if call_type == "train":
-        #     if self.training_mode == "pretrain":
-        #         for i,code_key in enumerate(origin_codes_map):
-        #             dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
+        E1_loss_map = {}
+        if call_type == "train":
+            if self.training_mode == "pretrain":
+                for i,code_key in enumerate(origin_codes_map):
+                    dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
                     
-        #             Y1 = dift_codes[0]#[batch,diftcode_len]
-        #             Y2 = dift_codes[1]#[batch,diftcode_len]
+                    Y1 = dift_codes[0]#[batch,diftcode_len]
+                    Y2 = dift_codes[1]#[batch,diftcode_len]
                 
-        #             tmp_E1,_ = self.compute_e1_loss(Y1,Y2)
+                    tmp_E1,_ = self.compute_e1_loss(Y1,Y2)
                 
-        #             E1_loss_map[code_key+"_loss"] = tmp_E1.item()
-        #             if i == 0:
-        #                 E1 = tmp_E1*self.dift_code_config[code_key][1]
-        #             else:
-        #                 E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
-        #     elif self.training_mode == "finetune":
-        #         Y1 = dift_codes_full[0]#[batch,diftcode_len]
-        #         Y2 = dift_codes_full[1]#[batch,diftcode_len]
+                    E1_loss_map[code_key+"_loss"] = tmp_E1.item()
+                    if i == 0:
+                        E1 = tmp_E1*self.dift_code_config[code_key][1]
+                    else:
+                        E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
+            elif self.training_mode == "finetune":
+                Y1 = dift_codes_full[0]#[batch,diftcode_len]
+                Y2 = dift_codes_full[1]#[batch,diftcode_len]
 
-        #         E1,_ = self.compute_e1_loss(Y1,Y2)
+                E1,_ = self.compute_e1_loss(Y1,Y2)
 
-        # elif call_type == "val" or call_type == "check_quality":
-        #     Y1 = dift_codes_full[0]#[batch,diftcode_len]
-        #     Y2 = dift_codes_full[1]#[batch,diftcode_len]
+        elif call_type == "val" or call_type == "check_quality":
+            Y1 = dift_codes_full[0]#[batch,diftcode_len]
+            Y2 = dift_codes_full[1]#[batch,diftcode_len]
             
-        #     E1,D = self.compute_e1_loss(Y1,Y2)
+            E1,D = self.compute_e1_loss(Y1,Y2)
 
-        #     if call_type == "check_quality" :
-        #         term_map = {
-        #             "input_lumis":input_lumis.cpu(),
-        #             "distance_matrix":D.cpu(),
-        #             "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
-        #             "global_positions":global_positions.cpu(),
-        #             "normal_label":normal_label.cpu(),
-        #             "normal_nn":normal_label.cpu()
-        #         }
-        #         term_map = self.visualize_quality_terms(term_map)
-        #         return term_map
-        # else:
-        #     print("unkown call type")
-        #     exit(0)
+            if call_type == "check_quality" :
+                term_map = {
+                    "input_lumis":input_lumis.cpu(),
+                    "distance_matrix":D.cpu(),
+                    "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
+                    "global_positions":global_positions.cpu(),
+                    "normal_label":normal_label.cpu(),
+                    "normal_nn":normal_label.cpu()
+                }
+                term_map = self.visualize_quality_terms(term_map)
+                return term_map
+        else:
+            print("unkown call type")
+            exit(0)
         #######
         #### covariance loss
         #######
@@ -240,10 +242,10 @@ class DIFT_TRAIN_NET(nn.Module):
         # if self.training_mode == "finetune":
         #     reg_loss = self.regularizer(self.dift_net.catnet)
 
-        normal_loss = self.l2_loss_fn(predicted_normal,normal_label) 
+        # normal_loss = self.l2_loss_fn(predicted_normal,normal_label) 
 
         
-        total_loss = normal_loss#E1*self.lambdas["E1"]
+        total_loss = E1*self.lambdas["E1"]
         # if self.training_mode == "finetune":
         #     total_loss = total_loss + reg_loss*self.lambdas["reg_loss"]#+E2*self.lambdas["E2"]
 
@@ -251,7 +253,7 @@ class DIFT_TRAIN_NET(nn.Module):
             # "albedo_value_total_loss":albedo_loss.item(),
             # "albedo_value_diff_loss":albedo_loss_diff.item(),
             # "albedo_value_spec_loss":albedo_loss_spec.item(),
-            # "e1_loss":E1.item(),
+            "e1_loss":E1.item(),
             # "e2_loss":E2.item(),
             "total_loss":total_loss.item(),
         }

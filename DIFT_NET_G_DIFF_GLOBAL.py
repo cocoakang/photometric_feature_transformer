@@ -6,7 +6,7 @@ from collections import OrderedDict
 import math
 
 class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
-    def __init__(self,args,measurements_length,dift_code_len):
+    def __init__(self,measurements_length,dift_code_len):
         super(DIFT_NET_G_DIFF_GLOBAL,self).__init__()
     
         self.measurements_length = measurements_length
