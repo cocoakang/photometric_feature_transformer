@@ -13,7 +13,7 @@ import math
 import struct
 from subprocess import Popen
 
-class DIFT_QUALITY_CHECKER:
+class DIFT_QUALITY_CHECKER_DILI:
     '''
     This class is used to test trained dift model. 
     Specifically, it aims at showing the pattern of a trained dift feature instead of loss.
@@ -29,7 +29,7 @@ class DIFT_QUALITY_CHECKER:
         ########################################
         ##loading setup configuration        ###
         ########################################
-        self.setup = training_configs["setup_input2"]
+        self.setup = training_configs["setup_input"]
         self.check_type = check_type
         self.dift_code_len = training_configs["dift_code_len"] if check_type == "a" else training_configs["dift_code_config"][check_type][0]
         self.checker_name = checker_name
@@ -191,7 +191,7 @@ class DIFT_QUALITY_CHECKER:
                 ##################################
                 ###STEP 2 transefer lumi to dift codes
                 #################################
-                measurements = rendered_lumi#dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
+                measurements = dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
                 cossin = torch.cat(
                         [
                             torch.sin(sampled_rotate_angles),

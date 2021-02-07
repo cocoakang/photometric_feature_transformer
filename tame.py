@@ -73,9 +73,9 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
@@ -111,6 +111,9 @@ if __name__ == "__main__":
         "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv/"
     }
     setup_input = Setup_Config_Freeform(standard_rendering_parameters)
+    setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
+    setup_input2 = Setup_Config_Freeform(standard_rendering_parameters)
+    setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
 
     ##build train_configs
     train_configs = {}
@@ -121,6 +124,7 @@ if __name__ == "__main__":
     train_configs["lumitexel_length"] = 24576 // train_configs["lumitexel_downsample_rate"] // train_configs["lumitexel_downsample_rate"]
     train_configs["noise_stddev"] = 0.01
     train_configs["setup_input"] = setup_input
+    train_configs["setup_input2"] = setup_input2
     train_configs["training_mode"] = "pretrain" if (args.pretrained_model_pan_h == "" and args.pretrained_model_pan_v == "") else "finetune"
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
@@ -225,9 +229,9 @@ if __name__ == "__main__":
     ##########################################
     if args.log_file_name == "":
         # writer = SummaryWriter(log_dir="runs/diligent_normal")
-        os.makedirs("../log_no_where/",exist_ok=True)
-        os.system("rm -r ../log_no_where/*")
-        writer = SummaryWriter(log_dir="../log_no_where/")
+        os.makedirs("../log_no_where2/",exist_ok=True)
+        os.system("rm -r ../log_no_where2/*")
+        writer = SummaryWriter(log_dir="../log_no_where2/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
@@ -281,20 +285,20 @@ if __name__ == "__main__":
     #     )
     #     quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_a",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="a"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+        train_configs,
+        log_dir,
+        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+        "uniform_mirror_ball_a",
+        torch.device("cuda:{}".format(args.checker_gpu)),
+        axay=(0.05,0.05),
+        diff_albedo=0.5,
+        spec_albedo=3.0,
+        batch_size=500,
+        test_view_num=1,
+        check_type="a"
+    )
+    quality_checkers.append(checker_uniform_mirror_ball)
 
     # # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
     # #     train_configs,
@@ -393,22 +397,22 @@ if __name__ == "__main__":
             log_loss(writer,loss_log_terms,global_step,False,post_fix=post_fix)
 
         ## 2 check quality
-        # if global_step % CHECK_QUALITY_ITR == 0 or global_step == 1000:
-        #     # print("val queue size:",val_queue.qsize())
-        #     val_data = val_queue.get()
-        #     # val_Semaphore.release()
-        #     # print("got check")
-        #     with torch.no_grad():
-        #         training_net.eval()
-        #         quality_terms = training_net(val_data,call_type="check_quality",global_step=global_step)
-        #     log_quality(writer,quality_terms,global_step)
+        if global_step % CHECK_QUALITY_ITR == 0 or global_step == 1000:
+            # print("val queue size:",val_queue.qsize())
+            # val_data = val_queue.get()
+            # val_Semaphore.release()
+            # print("got check")
+            # with torch.no_grad():
+            #     training_net.eval()
+            #     quality_terms = training_net(val_data,call_type="check_quality",global_step=global_step)
+            # log_quality(writer,quality_terms,global_step)
 
-        #     #check with real(real fake) data
-        #     with torch.no_grad():
-        #         for a_checker in quality_checkers:
-        #             print("========")
-        #             training_net.eval()
-        #             a_checker.check_quality(training_net,writer,global_step)
+            #check with real(real fake) data
+            with torch.no_grad():
+                for a_checker in quality_checkers:
+                    print("========")
+                    training_net.eval()
+                    a_checker.check_quality(training_net,writer,global_step)
 
         ## 3 save model
         if global_step % SAVE_MODEL_ITR == 0 and global_step != 0:

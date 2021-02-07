@@ -20,24 +20,21 @@ if __name__ == "__main__":
     parser.add_argument("measurement_len",type=int)
     parser.add_argument("dift_code_len_g",type=int)
     parser.add_argument("dift_code_len_m",type=int)
-    parser.add_argument("view_code_len",type=int)
 
     parser.add_argument("--batch_size",type=int,default=5000)
-    parser.add_argument("--scalar",type=float,default=184.0)
+    parser.add_argument("--scalar",type=float,default=1.0)
 
     args = parser.parse_args()
+
+    inference_device = torch.device("cuda:3")
 
     ################################################
     #####load net
     #################################################
     # #about rendering devices
-    standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
-    }
-    setup_input = Setup_Config(standard_rendering_parameters)
 
-    nn_model = DIFT_NET_inuse(args,setup_input)
-    pretrained_dict = torch.load(args.model_root + args.model_file_name, map_location='cuda:0')
+    nn_model = DIFT_NET_inuse(args)
+    pretrained_dict = torch.load(args.model_root + args.model_file_name, map_location=inference_device)
     print("loading trained model...")
     model_dict = nn_model.state_dict()
     something_not_found=False
@@ -50,9 +47,9 @@ if __name__ == "__main__":
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
     model_dict.update(pretrained_dict) 
     nn_model.load_state_dict(model_dict)
-    nn_model.to("cuda:0")
+    nn_model.to(inference_device)
     nn_model.eval()
-
+    
     ################################################
     ####prepare for saving
     ################################################
@@ -66,11 +63,11 @@ if __name__ == "__main__":
 
     for which_view in range(args.rotate_num):
         print("view{}/{}".format(which_view,args.rotate_num-1))
-        cur_root = args.root+"{}/".format(which_view)
+        cur_root = args.root+"view_{:02d}/".format(which_view+1)
         cur_save_root = save_root+"{}/".format(which_view)
         os.makedirs(cur_save_root,exist_ok=True)
-        measurments = np.fromfile(cur_root+"cam00_data_{}_nocc_compacted.bin".format(args.measurement_len*2),np.float32).reshape([-1,args.measurement_len,3])
-        measurments = np.transpose(measurments,(0,2,1)).reshape(-1,args.measurement_len)
+        measurments = np.fromfile(cur_root+"cam00_data_{}_nocc_compacted.bin".format(args.measurement_len),np.float32).reshape([-1,3,args.measurement_len])
+        measurments = measurments.reshape(-1,args.measurement_len)
         measurments = measurments * args.scalar
 
         pf_save = open(cur_save_root+"feature.bin".format(which_view),"wb")
@@ -82,8 +79,8 @@ if __name__ == "__main__":
             cur_batch_size = tmp_measurements.shape[0]
             if cur_batch_size == 0:
                 break
-            tmp_measurements = torch.from_numpy(tmp_measurements).to("cuda:0")
-            sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1).to("cuda:0")
+            tmp_measurements = torch.from_numpy(tmp_measurements).to(inference_device)
+            sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1).to(inference_device)
             sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]
             with torch.no_grad():
                 dift_codes = nn_model(tmp_measurements,sampled_rotate_angles)

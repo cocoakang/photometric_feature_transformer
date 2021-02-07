@@ -12,32 +12,31 @@ import torch_render
 from DIFT_NET import DIFT_NET
 
 class DIFT_NET_inuse(nn.Module):
-    def __init__(self,args,setup):
+    def __init__(self,args):
         super(DIFT_NET_inuse,self).__init__()
         ########################################
         ##parse configuration                ###
         ########################################
         
         self.measurement_len = args.measurement_len
-        self.setup = setup
 
         partition = {
-            "local":5,
-            "global":3
+            "local":96,
+            "global":96
         }
 
         dift_code_config = {
-            "local_noalbedo":(9,-1.0),
-            "global":(7,-1.0),
-            "cat":(16,-1.0)
+            "local_noalbedo":(0,-1.0),
+            "global":(5,-1.0),
+            "cat":(5,-1.0)
         }
 
         training_configs = {
             "partition": partition,
             "dift_code_config" : dift_code_config,
             "measurements_length" : args.measurement_len,
-            "dift_code_len" : 10,
-            "training_mode" : "finetune"
+            "dift_code_len" : 5,
+            "training_mode" : ""
         }
 
         ########################################

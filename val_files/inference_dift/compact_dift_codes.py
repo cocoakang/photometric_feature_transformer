@@ -14,8 +14,8 @@ if __name__ == "__main__":
     parser.add_argument("dift_code_len",type=int)
     parser.add_argument("colmap_code_len",type=int)
 
-    parser.add_argument("--imgheight",type=int,default=3000)
-    parser.add_argument("--imgwidth",type=int,default=4096)
+    parser.add_argument("--imgheight",type=int,default=512)
+    parser.add_argument("--imgwidth",type=int,default=612)
     parser.add_argument("--test_on_the_fly",action="store_true")
 
     args = parser.parse_args()
@@ -76,11 +76,11 @@ if __name__ == "__main__":
     ptr = 0
     feature_file_bin_head = np.array([args.imgwidth,args.imgheight,test_dim],np.int32)
     for which_view in range(args.rotate_num):
-        with open(args.root+"{}/cam00_index_nocc.bin".format(which_view),"rb") as pf:
-            pixel_num = np.fromfile(pf,np.int32,1)[0]
+        with open(args.root+"view_{:02d}/cam00_index_nocc.bin".format(which_view+1),"rb") as pf:
+            # pixel_num = np.fromfile(pf,np.int32,1)[0]
             idxes = np.fromfile(pf,np.int32).reshape([-1,2])
-            assert idxes.shape[0] == pixel_num,"index.shape[0]={} pixel_num={}".format(idxes.shape[0],pixel_num)
-            print("pixel num:{}".format(pixel_num))
+            # assert idxes.shape[0] == pixel_num,"index.shape[0]={} pixel_num={}".format(idxes.shape[0],pixel_num)
+            # print("pixel num:{}".format(pixel_num))
 
             feature_origin = np.fromfile(log_folder+"{}/feature.bin".format(which_view),np.float32).reshape([-1,args.dift_code_len])
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
         if have_pca_3:
             tmp_features_3 = pca.transform(feature_origin)
-            tmp_img[idxes[:,1],idxes[:,0]] = ((tmp_features_3-feautre_min)/(feautre_max-feautre_min))
+            tmp_img[idxes[:,0],idxes[:,1]] = ((tmp_features_3-feautre_min)/(feautre_max-feautre_min))
         else:
             tmp_features_3 = np.concatenate([feature_origin,np.zeros((feature_origin.shape[0],3-feature_origin.shape[1]),np.float32)],axis=1)
         cv2.imwrite(feature_img_folder+"pd_predicted_{}_0.png".format(which_view),tmp_img[:,:,::-1]*255.0)
