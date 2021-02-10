@@ -134,6 +134,8 @@ class DIFT_TRAIN_NET(nn.Module):
         #1 first we project every lumitexel to measurements
         input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
         measurements = input_lumis#self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
+        tmp_noise = torch.randn_like(measurements)*0.05+1.
+        measurements = measurements*tmp_noise
         #TODO add noise here
         
         # measurements_for_albedo = measurements[:,:self.partition["albedo"][0]]
@@ -247,7 +249,7 @@ class DIFT_TRAIN_NET(nn.Module):
         normal_loss = self.l2_loss_fn(predicted_normal,normal_label) 
 
         
-        total_loss = E1*self.lambdas["E1"] + normal_loss
+        total_loss = E1*self.lambdas["E1"]# + normal_loss
         # if self.training_mode == "finetune":
         #     total_loss = total_loss + reg_loss*self.lambdas["reg_loss"]#+E2*self.lambdas["E2"]
 

@@ -18,11 +18,11 @@ from multiprocessing import Queue
 import math
 import re
 
-MAX_ITR = 300000
+MAX_ITR = 40000
 VALIDATE_ITR = 5
 CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
-LOG_MODEL_ITR=30000
+LOG_MODEL_ITR=10000
 
 def log_loss(writer,loss_terms,global_step,is_training,post_fix=""):
     train_val_postfix = "_train" if is_training else "_val"
@@ -151,7 +151,7 @@ if __name__ == "__main__":
             partition["local"] = 0
             partition["global"] = setup_input.get_light_num()
             dift_code_config["local_noalbedo"] = (0,1.0)
-            dift_code_config["global"] = (5,10.0)
+            dift_code_config["global"] = (args.code_len,10.0)
         elif train_configs["training_mode"] == "finetune":
             print("not ready")
             exit()
