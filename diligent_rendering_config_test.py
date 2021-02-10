@@ -10,7 +10,7 @@ from torch_render import Setup_Config_Freeform
 
 if __name__ == "__main__":
     config = {
-        "config_dir":TORCH_RENDER_PATH + "wallet_of_torch_renderer/diligent_mv/"
+        "config_dir":TORCH_RENDER_PATH + "wallet_of_torch_renderer/diligent_mv2/"
     }
     setup = Setup_Config_Freeform(config)
 

@@ -83,7 +83,7 @@ if __name__ == "__main__":
         with open(file_name,"rb") as pf:
             if args.test_on_the_fly:
                 pixel_num = np.fromfile(pf,np.int32,1)[0]
-            idxes = np.fromfile(pf,np.int32).reshape([-1,2])
+            idxes = np.fromfile(pf,np.int32).reshape([-1,2])#(x,y)
             # assert idxes.shape[0] == pixel_num,"index.shape[0]={} pixel_num={}".format(idxes.shape[0],pixel_num)
             # print("pixel num:{}".format(pixel_num))
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         tmp_img = np.zeros([args.imgheight,args.imgwidth,3],np.float32)
         if have_pca_3:
             tmp_features_3 = pca.transform(feature_origin)
-            tmp_img[idxes[:,0],idxes[:,1]] = ((tmp_features_3-feautre_min)/(feautre_max-feautre_min))
+            tmp_img[idxes[:,1],idxes[:,0]] = ((tmp_features_3-feautre_min)/(feautre_max-feautre_min))
         else:
             tmp_features_3 = np.concatenate([feature_origin,np.zeros((feature_origin.shape[0],3-feature_origin.shape[1]),np.float32)],axis=1)
         cv2.imwrite(feature_img_folder+"pd_predicted_{}_0.png".format(which_view),tmp_img[:,:,::-1]*255.0)

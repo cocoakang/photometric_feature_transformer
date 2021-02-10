@@ -108,12 +108,12 @@ if __name__ == "__main__":
 
     ##about rendering devices
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv2/"
     }
     setup_input = Setup_Config_Freeform(standard_rendering_parameters)
-    setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
+    # setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
     setup_input2 = Setup_Config_Freeform(standard_rendering_parameters)
-    setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
+    # setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
 
     ##build train_configs
     train_configs = {}
