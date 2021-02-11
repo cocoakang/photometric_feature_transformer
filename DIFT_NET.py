@@ -24,16 +24,11 @@ class DIFT_NET(nn.Module):
         
         # self.albedo_part = DIFT_NET_ALBEDO(args,args["partition"]["local"],args["dift_code_config"]["local_albedo"][0])
         if self.dift_code_config["local_noalbedo"][0] > 0:
-            print("not ready")
-            exit()
             self.g_diff_local_part = DIFT_NET_G_DIFF_LOCAL(input_size,args["dift_code_config"]["local_noalbedo"][0])
         if self.dift_code_config["global"][0] > 0:
             self.g_diff_global_part = DIFT_NET_G_DIFF_GLOBAL(input_size,args["dift_code_config"]["global"][0])
         # self.g_spec_part = DIFT_NET_G_SPEC(args,args["partition"]["g_spec"][0],args["partition"]["g_spec"][1])
-        if self.training_mode == "finetune":
-            print("not ready")
-            exit()
-            self.catnet = DIFT_NET_CONCAT(self.dift_code_config)
+        self.catnet = DIFT_NET_CONCAT(self.dift_code_config)
         
     def forward(self,batch_data,cossin,return_origin_codes=False):
         '''
@@ -52,8 +47,6 @@ class DIFT_NET(nn.Module):
         code_list = []
         origin_codes_map = {}
         if self.dift_code_config["local_noalbedo"][0] > 0:
-            print("not ready")
-            exit()
             dift_codes_g_diff_local = self.g_diff_local_part(x_n,cossin)
             code_list.append(dift_codes_g_diff_local)
             origin_codes_map["local_noalbedo"] = dift_codes_g_diff_local
@@ -64,18 +57,12 @@ class DIFT_NET(nn.Module):
             origin_codes_map["global"] = dift_codes_g_diff_global
 
         if len(code_list) > 1:
-            print("not ready")
-            exit()
             dift_codes = torch.cat(code_list,dim=1)
+            dift_codes = self.catnet(dift_codes)
+            origin_codes_map["cat"] = dift_codes
         else:
             dift_codes = code_list[0]#
         
-        if self.training_mode == "finetune":
-            print("not ready")
-            exit()
-            dift_codes = self.catnet(dift_codes)
-        
-
         if not return_origin_codes:
             return dift_codes
         else:

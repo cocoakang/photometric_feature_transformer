@@ -18,11 +18,11 @@ from multiprocessing import Queue
 import math
 import re
 
-MAX_ITR = 40000
+MAX_ITR = 300000
 VALIDATE_ITR = 5
 CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
-LOG_MODEL_ITR=10000
+LOG_MODEL_ITR=30000
 
 def log_loss(writer,loss_terms,global_step,is_training,post_fix=""):
     train_val_postfix = "_train" if is_training else "_val"
@@ -150,8 +150,9 @@ if __name__ == "__main__":
         if train_configs["training_mode"] == "pretrain":
             partition["local"] = 0
             partition["global"] = setup_input.get_light_num()
-            dift_code_config["local_noalbedo"] = (0,1.0)
-            dift_code_config["global"] = (args.code_len,10.0)
+            dift_code_config["local_noalbedo"] = (9,1.0)
+            dift_code_config["global"] = (7,10.0)
+            dift_code_config["cat"] = (16,10.0)
         elif train_configs["training_mode"] == "finetune":
             print("not ready")
             exit()
@@ -228,7 +229,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/diligent_global")
+        writer = SummaryWriter(log_dir="runs/diligent_global_local")
         # os.makedirs("../log_no_where2/",exist_ok=True)
         # os.system("rm -r ../log_no_where2/*")
         # writer = SummaryWriter(log_dir="../log_no_where2/")

@@ -27,16 +27,16 @@ class DIFT_NET_inuse(nn.Module):
         }
 
         dift_code_config = {
-            "local_noalbedo":(0,-1.0),
-            "global":(5,-1.0),
-            "cat":(5,-1.0)
+            "local_noalbedo":(9,-1.0),
+            "global":(7,-1.0),
+            "cat":(16,-1.0)
         }
 
         training_configs = {
             "partition": partition,
             "dift_code_config" : dift_code_config,
             "measurements_length" : args.measurement_len,
-            "dift_code_len" : 5,
+            "dift_code_len" : 16,
             "training_mode" : ""
         }
 
