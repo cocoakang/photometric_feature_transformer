@@ -25,8 +25,8 @@ def draw_cam_frame(R_matrix,T_vec,dot_len=100.0,sample_num = 10):
 
     return point_collector,color_collector
 
-data_root = "/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/"
-config_root = "/Users/ross/CVPR21/torch_renderer/wallet_of_torch_renderer/diligent_mv2/"
+data_root = "/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/pot2PNG/"
+config_root = "/Users/ross/CVPR21/torch_renderer/wallet_of_torch_renderer/diligent_mv_pot2/"
 os.makedirs(config_root,exist_ok=True)
 
 origin_data = scio.loadmat(data_root+"Calib_Results.mat")

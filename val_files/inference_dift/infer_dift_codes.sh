@@ -1,14 +1,14 @@
 #!/bin/bash
 
-DATA_ROOT="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/"
-MODEL_ROOT="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/mlen_96_codelen_32_itr0/models/"
-MODEL_FILE_NAME="model_state_30000.pkl"
+DATA_ROOT="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/pot2PNG/"
+MODEL_ROOT="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/diligent_global_local_pot2_2/models/"
+MODEL_FILE_NAME="model_state_270000.pkl"
 
 SAMPLE_VIEW_NUM=20
 ROTATE_VIEW_NUM=20
 MEASUREMENT_LEN=96
-DIFT_CODE_LEN_G=32
-DIFT_CODE_LEN_M=0
+DIFT_CODE_LEN_G=7
+DIFT_CODE_LEN_M=9
 COLMAP_CODE_LEN=4
 
 python infer_dift_codes.py $DATA_ROOT $MODEL_ROOT $MODEL_FILE_NAME $SAMPLE_VIEW_NUM $ROTATE_VIEW_NUM $MEASUREMENT_LEN $DIFT_CODE_LEN_G $DIFT_CODE_LEN_M

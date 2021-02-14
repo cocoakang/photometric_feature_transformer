@@ -5,7 +5,7 @@ import os
 
 if __name__ == '__main__':
     parser  = argparse.ArgumentParser()
-    parser.add_argument("--data_root",default="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/")
+    parser.add_argument("--data_root",default="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/buddhaPNG/")
     parser.add_argument("--lightnum",type=int,default=12*8)
     parser.add_argument("--view_num",type=int,default=20)
 
@@ -25,6 +25,13 @@ if __name__ == '__main__':
             measurement_collector.append(tmp_measurements)
         
         measurement_collector = np.stack(measurement_collector,axis=2)#(pointnum,3,lightnum)
+
+        light_intensity = np.loadtxt(cur_data_root+"light_intensities.txt",delimiter = ' ')
+        light_intensity = np.transpose(light_intensity,(1,0))
+        light_intensity = np.expand_dims(light_intensity,axis=0)
+
+        measurement_collector = measurement_collector / light_intensity
+
         measurement_collector = measurement_collector.astype(np.float32).tofile(cur_data_root+"cam00_data_{}_nocc_compacted.bin".format(args.lightnum))
 
         valid_idxes.astype(np.int32).tofile(cur_data_root+"cam00_index_nocc.bin")

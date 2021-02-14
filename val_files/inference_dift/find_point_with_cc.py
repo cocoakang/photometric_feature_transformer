@@ -9,7 +9,7 @@ import open3d as o3d
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root",default="/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/buddhaPNG/")
+    parser.add_argument("--data_root",default="/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/pot2PNG/")
     parser.add_argument("--view_num",type=int,default=20)
 
     args = parser.parse_args()
