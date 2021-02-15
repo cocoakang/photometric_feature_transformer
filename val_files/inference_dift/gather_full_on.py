@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import os
 
-data_root = "/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/pot2PNG/"
+data_root = "/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/"
 view_num = 20
 light_num = 12*8
 

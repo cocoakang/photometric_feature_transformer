@@ -115,14 +115,14 @@ if __name__ == "__main__":
             else:
                 tmp_features = np.concatenate([feature_origin,np.zeros((feature_origin.shape[0],test_dim-feature_origin.shape[1]),np.float32)],axis=1)
             tmp_img[idxes[:,1],idxes[:,0]] = tmp_features
-            img_collector = []
-            for which_channel in range(test_dim):
-                # img_collector.append(cv2.bilateralFilter(tmp_img[:,:,[which_channel]], 9, 5, 5))#0
-                # img_collector.append(cv2.medianBlur(tmp_img[:,:,[which_channel]],5))#1
-                # img_collector.append(cv2.GaussianBlur(tmp_img[:,:,[which_channel]],(5,5),0))#2
-                # img_collector.append(cv2.bilateralFilter(tmp_img[:,:,[which_channel]], 15, 9, 9))#3
-                img_collector.append(cv2.bilateralFilter(tmp_img[:,:,[which_channel]], 17, 15, 15))#4
-            tmp_img = np.stack(img_collector,axis=2)
+            # img_collector = []
+            # for which_channel in range(test_dim):
+            #     # img_collector.append(cv2.bilateralFilter(tmp_img[:,:,[which_channel]], 9, 5, 5))#0
+            #     # img_collector.append(cv2.medianBlur(tmp_img[:,:,[which_channel]],5))#1
+            #     # img_collector.append(cv2.GaussianBlur(tmp_img[:,:,[which_channel]],(5,5),0))#2
+            #     # img_collector.append(cv2.bilateralFilter(tmp_img[:,:,[which_channel]], 15, 9, 9))#3
+            #     img_collector.append(cv2.bilateralFilter(tmp_img[:,:,[which_channel]], 17, 15, 15))#4
+            # tmp_img = np.stack(img_collector,axis=2)
             
             with open(feature_img_folder+"pd_predicted_{}_0.png.bin".format(which_view),"wb") as p_feature_file_bin:
                 feature_file_bin_head.tofile(p_feature_file_bin)

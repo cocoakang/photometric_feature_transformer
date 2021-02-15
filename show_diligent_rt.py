@@ -25,8 +25,8 @@ def draw_cam_frame(R_matrix,T_vec,dot_len=100.0,sample_num = 10):
 
     return point_collector,color_collector
 
-data_root = "/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/pot2PNG/"
-config_root = "/Users/ross/CVPR21/torch_renderer/wallet_of_torch_renderer/diligent_mv_pot2/"
+data_root = "/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/"
+config_root = "/Users/ross/CVPR21/torch_renderer/wallet_of_torch_renderer/diligent_mv_reading/"
 os.makedirs(config_root,exist_ok=True)
 
 origin_data = scio.loadmat(data_root+"Calib_Results.mat")
@@ -67,7 +67,7 @@ color_collector = np.concatenate(color_collector,axis=0)
 pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(point_collector)
 pcd.colors = o3d.utility.Vector3dVector(color_collector)
-o3d.io.write_point_cloud(data_root+"cam_frames.ply", pcd)
+o3d.io.write_point_cloud(config_root+"cam_frames.ply", pcd)
 
 print(cam_pos_collector[0])
 cam_pos_collector[0].astype(np.float32).tofile(config_root+"cam_pos.bin")

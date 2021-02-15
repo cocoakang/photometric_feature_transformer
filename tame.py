@@ -73,9 +73,9 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     ##about rendering devices
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_pot2/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading/"
     }
     setup_input = Setup_Config_Freeform(standard_rendering_parameters)
     # setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
@@ -150,9 +150,9 @@ if __name__ == "__main__":
         if train_configs["training_mode"] == "pretrain":
             partition["local"] = 0
             partition["global"] = setup_input.get_light_num()
-            dift_code_config["local_noalbedo"] = (0,1.0)
+            dift_code_config["local_noalbedo"] = (9,1.0)
             dift_code_config["global"] = (7,10.0)
-            dift_code_config["cat"] = (7,10.0)
+            dift_code_config["cat"] = (16,10.0)
         elif train_configs["training_mode"] == "finetune":
             print("not ready")
             exit()
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/diligent_global_pot2_2")
+        writer = SummaryWriter(log_dir="runs/diligent_global_local_reading")
         # os.makedirs("../log_no_where2/",exist_ok=True)
         # os.system("rm -r ../log_no_where2/*")
         # writer = SummaryWriter(log_dir="../log_no_where2/")

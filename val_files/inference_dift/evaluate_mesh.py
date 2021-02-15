@@ -8,7 +8,7 @@ import argparse
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root",default="/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/buddhaPNG/")
+    parser.add_argument("--data_root",default="/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/")
 
     args = parser.parse_args()
 

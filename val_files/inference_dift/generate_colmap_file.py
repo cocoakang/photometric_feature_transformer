@@ -29,7 +29,7 @@ def draw_cam_frame(R_matrix,T_vec,dot_len=100.0,sample_num = 10):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root",default="/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/pot2PNG/")
+    parser.add_argument("--data_root",default="/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/")
     parser.add_argument("--template_root",default="/Users/ross/CVPR21_freshmeat/")
     parser.add_argument("--image_num",type=int,default=20)
 
