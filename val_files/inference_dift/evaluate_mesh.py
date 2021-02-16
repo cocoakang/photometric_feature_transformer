@@ -12,6 +12,21 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+
+    max_bar = 4.0
+
+    fig, ax = plt.subplots(figsize=(6, 1))
+    fig.subplots_adjust(bottom=0.5)
+    cmap=plt.get_cmap("jet")
+    norm = matplotlib.colors.Normalize(vmin=0.0, vmax=max_bar)
+    cb1 = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap,
+                                norm=norm,
+                                orientation='horizontal')
+    cb1.set_label('mm')
+    plt.savefig(args.data_root+"bar.png")
+    # fig.show()
+    exit()
+
     #load gt
     gt = o3d.io.read_point_cloud(args.data_root+"mesh_Gt.ply")
 
@@ -25,11 +40,10 @@ if __name__ == '__main__':
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(ours_points)
     distances, indices = nbrs.kneighbors(gt_points)
 
-    distances = np.clip(distances,0.0,2.0)
-    distances = distances / 2.0
 
-    cmap=plt.get_cmap("jet")
-    tmp_color = cmap(distances)
+    distances = np.clip(distances,0.0,max_bar)
+    distances = distances / max_bar
+    tmp_color = cmap(distances)    
     tmp_color = np.reshape(tmp_color,(-1,4))[:,:3]
     print(tmp_color)
     print(distances.shape)
