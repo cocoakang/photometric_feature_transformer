@@ -108,11 +108,13 @@ if __name__ == "__main__":
 
     ##about rendering devices
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading_cs/"
     }
     setup_input = Setup_Config_Freeform(standard_rendering_parameters)
-    setup_input.cam_pos = np.array([0.0,0.0,0.0],np.float32)# TODO read from calibration file
     # setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
+    standard_rendering_parameters = {
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading/"
+    }
     setup_input2 = Setup_Config_Freeform(standard_rendering_parameters)
     # setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
 
@@ -177,14 +179,14 @@ if __name__ == "__main__":
     lambdas = {}
     lambdas["E1"] = 1.0
     # lambdas["E2"] =1e-1
-    lambdas["reg_loss"] = 1e-4
+    lambdas["reg_loss"] = 1.0
     train_configs["lambdas"] = lambdas
 
     train_configs["global_data_loss"] = 1.0
     train_configs["local_data_loss"] = 1.0
 
     train_configs["data_root"] = args.data_root
-    train_configs["batch_size"] = 25
+    train_configs["batch_size"] = 50
     train_configs["pre_load_buffer_size"] = 500000
 
     ##########################################
@@ -230,10 +232,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        # writer = SummaryWriter(log_dir="runs/diligent_global_local_reading_unstructured")
-        os.makedirs("../log_no_where2/",exist_ok=True)
-        os.system("rm -r ../log_no_where2/*")
-        writer = SummaryWriter(log_dir="../log_no_where2/")
+        writer = SummaryWriter(log_dir="runs/diligent_global_local_reading_unstructured_longer_correct_reg1_bigbatch")
+        # os.makedirs("../log_no_where2/",exist_ok=True)
+        # os.system("rm -r ../log_no_where2/*")
+        # writer = SummaryWriter(log_dir="../log_no_where2/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
