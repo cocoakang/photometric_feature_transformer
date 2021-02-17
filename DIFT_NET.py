@@ -7,7 +7,6 @@ import math
 from DIFT_NET_CONCAT import DIFT_NET_CONCAT
 from DIFT_NET_G_DIFF_LOCAL import DIFT_NET_G_DIFF_LOCAL
 from DIFT_NET_G_DIFF_GLOBAL import DIFT_NET_G_DIFF_GLOBAL
-from DIFT_NET_G_SPEC import DIFT_NET_G_SPEC
 
 class DIFT_NET(nn.Module):
     def __init__(self,args):
@@ -33,7 +32,7 @@ class DIFT_NET(nn.Module):
     def forward(self,batch_data,cossin,return_origin_codes=False):
         '''
         batch_data=(batch_size,sample_view_num,m_len,1)
-        cossin = (batch_size,2)
+        cossin = (batch_size,9+3)
         albedo_diff = (batch_size,1)
         albedo_spec = (batch_size,1)
         '''

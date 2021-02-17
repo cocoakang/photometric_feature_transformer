@@ -68,6 +68,7 @@ if __name__ == "__main__":
         pca2 = PCA(n_components=test_dim)
         features_pca2 = pca2.fit_transform(subfeatures)
         have_pca_code = True
+    pca2_max =  features_pca2.max()
     print("Done.")
     
     ######step 3 draw features#################
@@ -112,6 +113,7 @@ if __name__ == "__main__":
             tmp_img = np.zeros([args.imgheight,args.imgwidth,test_dim],np.float32)
             if have_pca_code:
                 tmp_features = pca2.transform(feature_origin)
+                tmp_features = tmp_features / pca2_max
             else:
                 tmp_features = np.concatenate([feature_origin,np.zeros((feature_origin.shape[0],test_dim-feature_origin.shape[1]),np.float32)],axis=1)
             tmp_img[idxes[:,1],idxes[:,0]] = tmp_features

@@ -13,7 +13,7 @@ class DIFT_NET_G_DIFF_LOCAL(nn.Module):
         self.dift_code_len = dift_code_len
         self.keep_prob = 0.9
         #############construct model
-        input_size = self.measurements_length*1+4#+self.view_code_len
+        input_size = self.measurements_length*1+9+3#+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
 
@@ -174,7 +174,7 @@ class DIFT_NET_G_DIFF_LOCAL(nn.Module):
         device = batch_data.device
         
         x_n = batch_data.reshape(batch_size,self.measurements_length)
-        x_n = torch.cat([x_n,cossin,1-cossin],dim=1)
+        x_n = torch.cat([x_n,cossin],dim=1)
         
         dift_codes = self.dift_part(x_n)
         dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)

@@ -18,7 +18,7 @@ from multiprocessing import Queue
 import math
 import re
 
-MAX_ITR = 300000
+MAX_ITR = 3000000
 VALIDATE_ITR = 5
 CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
@@ -73,9 +73,9 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=2)
+    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--checker_gpu",type=int,default=2)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
@@ -111,6 +111,7 @@ if __name__ == "__main__":
         "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading/"
     }
     setup_input = Setup_Config_Freeform(standard_rendering_parameters)
+    setup_input.cam_pos = np.array([0.0,0.0,0.0],np.float32)# TODO read from calibration file
     # setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
     setup_input2 = Setup_Config_Freeform(standard_rendering_parameters)
     # setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
@@ -150,8 +151,8 @@ if __name__ == "__main__":
         if train_configs["training_mode"] == "pretrain":
             partition["local"] = 0
             partition["global"] = setup_input.get_light_num()
-            dift_code_config["local_noalbedo"] = (9,1.0)
-            dift_code_config["global"] = (7,10.0)
+            dift_code_config["local_noalbedo"] = (7,1.0)
+            dift_code_config["global"] = (9,10.0)
             dift_code_config["cat"] = (16,10.0)
         elif train_configs["training_mode"] == "finetune":
             print("not ready")
@@ -229,10 +230,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/diligent_global_local_reading")
-        # os.makedirs("../log_no_where2/",exist_ok=True)
-        # os.system("rm -r ../log_no_where2/*")
-        # writer = SummaryWriter(log_dir="../log_no_where2/")
+        # writer = SummaryWriter(log_dir="runs/diligent_global_local_reading_unstructured")
+        os.makedirs("../log_no_where2/",exist_ok=True)
+        os.system("rm -r ../log_no_where2/*")
+        writer = SummaryWriter(log_dir="../log_no_where2/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()

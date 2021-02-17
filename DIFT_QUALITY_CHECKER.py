@@ -192,13 +192,10 @@ class DIFT_QUALITY_CHECKER:
                 ###STEP 2 transefer lumi to dift codes
                 #################################
                 measurements = rendered_lumi#dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
-                cossin = torch.cat(
-                        [
-                            torch.sin(sampled_rotate_angles),
-                            torch.cos(sampled_rotate_angles)
-                        ],dim=1
-                    )
-                
+                r = torch.eye(3,dtype=torch.float32).to(self.test_device).reshape((1,9))
+                t = torch.zeros(1,3,dtype=torch.float32).to(self.test_device)
+                rt = torch.cat((r,t),dim=1).repeat(cur_batch_size,1)
+
                 # view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(self.test_device))#[2*batch,4,4]
                 # view_mat_model_t = torch.transpose(view_mat_model,1,2)#[batch,4,4]
                 # view_mat_model_t = view_mat_model_t.reshape(cur_batch_size,16) if self.test_in_grey else view_mat_model_t.reshape(cur_batch_size*3,16)
@@ -214,7 +211,7 @@ class DIFT_QUALITY_CHECKER:
                 #     albedo_nn_diff = tmp_input_params_tc[:,5:8].reshape(cur_batch_size*3,1)
                 #     albedo_nn_spec = tmp_input_params_tc[:,8:11].reshape(cur_batch_size*3,1)
 
-                dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements,cossin,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
+                dift_codes_full,origin_code_map = dift_trainer.dift_net(measurements,rt,True)#(batch,diftcodelen)/(batch*3,diftcodelen)
                 
                 if self.check_type == "a":
                     dift_codes = dift_codes_full
