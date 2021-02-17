@@ -68,7 +68,7 @@ if __name__ == "__main__":
         pca2 = PCA(n_components=test_dim)
         features_pca2 = pca2.fit_transform(subfeatures)
         have_pca_code = True
-    pca2_max =  features_pca2.max()
+        pca2_max =  features_pca2.max()
     print("Done.")
     
     ######step 3 draw features#################

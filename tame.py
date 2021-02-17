@@ -73,9 +73,9 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=2)
-    parser.add_argument("--rendering_gpu",type=int,default=2)
-    parser.add_argument("--checker_gpu",type=int,default=2)
+    parser.add_argument("--training_gpu",type=int,default=3)
+    parser.add_argument("--rendering_gpu",type=int,default=3)
+    parser.add_argument("--checker_gpu",type=int,default=3)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
@@ -151,9 +151,9 @@ if __name__ == "__main__":
         if train_configs["training_mode"] == "pretrain":
             partition["local"] = 0
             partition["global"] = setup_input.get_light_num()
-            dift_code_config["local_noalbedo"] = (7,1.0)
-            dift_code_config["global"] = (9,10.0)
-            dift_code_config["cat"] = (16,10.0)
+            dift_code_config["local_noalbedo"] = (64,1.0)
+            dift_code_config["global"] = (64,10.0)
+            dift_code_config["cat"] = (128,10.0)
         elif train_configs["training_mode"] == "finetune":
             print("not ready")
             exit()
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     lambdas = {}
     lambdas["E1"] = 1.0
     # lambdas["E2"] =1e-1
-    lambdas["reg_loss"] = 1.0
+    lambdas["reg_loss"] = 1e-4
     train_configs["lambdas"] = lambdas
 
     train_configs["global_data_loss"] = 1.0
