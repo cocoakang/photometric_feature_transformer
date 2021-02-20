@@ -30,6 +30,7 @@ class DIFT_QUALITY_CHECKER:
         ##loading setup configuration        ###
         ########################################
         self.setup = training_configs["setup_input2"]
+
         self.check_type = check_type
         self.dift_code_len = training_configs["dift_code_len"] if check_type == "a" else training_configs["dift_code_config"][check_type][0]
         self.checker_name = checker_name
@@ -118,6 +119,16 @@ class DIFT_QUALITY_CHECKER:
         self.valid_pixels_num = self.valid_pixels[0].shape[0]
         self.fake_index = np.stack(self.valid_pixels[::-1],axis=1).astype(np.int32)#(validnum,2),xy
 
+        self.rts = self.setup.get_all_rts(self.test_device)
+        self.R_matrixs = []
+        self.T_vecs = []
+        for R_matrix,T_vec in self.rts:
+            self.R_matrixs.append(R_matrix)
+            self.T_vecs.append(T_vec)
+
+        self.R_matrixs = torch.stack(self.R_matrixs,dim=0)
+        self.T_vecs = torch.stack(self.T_vecs,dim=0)
+
 
     def check_quality(self,dift_trainer,writer,global_step):
         """
@@ -192,8 +203,8 @@ class DIFT_QUALITY_CHECKER:
                 ###STEP 2 transefer lumi to dift codes
                 #################################
                 measurements = rendered_lumi#dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
-                r = torch.eye(3,dtype=torch.float32).to(self.test_device).reshape((1,9))
-                t = torch.zeros(1,3,dtype=torch.float32).to(self.test_device)
+                r = self.R_matrixs[0].to(self.test_device).reshape((1,9))
+                t = self.T_vecs[0].to(self.test_device).reshape((1,3))
                 rt = torch.cat((r,t),dim=1).repeat(cur_batch_size,1)
 
                 # view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(self.test_device))#[2*batch,4,4]

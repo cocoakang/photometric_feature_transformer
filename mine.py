@@ -128,27 +128,6 @@ class Mine:
     def generate_batch_positions(self,batch_size,bounding="box"):
         return np.random.uniform(param_bounds[bounding][0],param_bounds[bounding][1],[batch_size,3]).astype(np.float32)
 
-    def generate_batch_visible_frame_incf(self,position):
-        bath_size = position.shape[0]
-
-        position = torch.from_numpy(position).to(self.rendering_device)
-        n_2d = torch.from_numpy(np.random.rand(bath_size,2).astype(np.float32)*(param_bounds["n"][1]-param_bounds["n"][0])+param_bounds["n"][0]).to(self.rendering_device)
-        theta = torch.from_numpy(np.random.rand(bath_size,1).astype(np.float32)*(param_bounds["theta"][1]-param_bounds["theta"][0])+param_bounds["theta"][0]).to(self.rendering_device)
-
-        view_dir = torch.zeros_like(self.setup_input.get_cam_pos_torch(self.rendering_device)) - position #shape=[batch,3]
-        view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
-        #build local frame
-        frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
-        frame_n = view_dir#[batch,3]
-
-        n_local = torch_render.back_hemi_octa_map(n_2d)#[batch,3]
-        t_local,_ = torch_render.build_frame_f_z(n_local,theta,with_theta=True)
-        n = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
-        t = t_local[:,[0]]*frame_t+t_local[:,[1]]*frame_b+t_local[:,[2]]*frame_n#[batch,3]
-        b = torch.cross(n,t)#[batch,3]
-
-        return [n,t,b]
-
     def generate_batch_frame(self,batch_size):
         '''
         positions_1, positions_2: numpy array, camera frame
