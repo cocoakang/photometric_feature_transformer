@@ -73,9 +73,9 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=3)
-    parser.add_argument("--rendering_gpu",type=int,default=3)
-    parser.add_argument("--checker_gpu",type=int,default=3)
+    parser.add_argument("--training_gpu",type=int,default=0)
+    parser.add_argument("--rendering_gpu",type=int,default=0)
+    parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     train_configs["local_data_loss"] = 1.0
 
     train_configs["data_root"] = args.data_root
-    train_configs["batch_size"] = 50
+    train_configs["batch_size"] = 25
     train_configs["pre_load_buffer_size"] = 500000
 
     ##########################################
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/diligent_global_local_reading_unstructured_longer_correct_reg1_bigbatch")
+        writer = SummaryWriter(log_dir="runs/diligent_global_reading_structured_correct")
         # os.makedirs("../log_no_where2/",exist_ok=True)
         # os.system("rm -r ../log_no_where2/*")
         # writer = SummaryWriter(log_dir="../log_no_where2/")
