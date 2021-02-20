@@ -108,12 +108,12 @@ if __name__ == "__main__":
 
     ##about rendering devices
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading_cs/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1_cs/"
     }
     setup_input = Setup_Config_Freeform(standard_rendering_parameters)
     # setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
     }
     setup_input2 = Setup_Config_Freeform(standard_rendering_parameters)
     # setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
@@ -166,7 +166,7 @@ if __name__ == "__main__":
             dift_code_config["global"] = (g_d_len,10.0)
             dift_code_config["cat"] = (m_d_len+g_d_len,10.0)
 
-    train_configs["measurements_length"] = setup_input.get_light_num()#sum([partition[a_key] for a_key in partition])
+    train_configs["measurements_length"] = 16#sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
     train_configs["dift_code_config"] = dift_code_config
     if train_configs["training_mode"] == "pretrain":
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     train_configs["local_data_loss"] = 1.0
 
     train_configs["data_root"] = args.data_root
-    train_configs["batch_size"] = 50
+    train_configs["batch_size"] = 25
     train_configs["pre_load_buffer_size"] = 500000
 
     ##########################################
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/diligent_global_local_reading_unstructured_longer_correct_reg1_bigbatch")
+        writer = SummaryWriter(log_dir="runs/lightstage_global_unstructured")
         # os.makedirs("../log_no_where2/",exist_ok=True)
         # os.system("rm -r ../log_no_where2/*")
         # writer = SummaryWriter(log_dir="../log_no_where2/")

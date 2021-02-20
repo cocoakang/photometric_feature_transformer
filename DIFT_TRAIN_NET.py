@@ -48,7 +48,7 @@ class DIFT_TRAIN_NET(nn.Module):
         ########################################
 
         # self.denoising_net = SIGA20_NET_denoising(args)
-        # self.linear_projection = DIFT_linear_projection(args)
+        self.linear_projection = DIFT_linear_projection(args)
         # self.albedo_net = ALBEDO_NET(args)
         self.dift_net = DIFT_NET(args)
         self.dift_net_normal = DIFT_NET_NORMAL(args)
@@ -132,10 +132,8 @@ class DIFT_TRAIN_NET(nn.Module):
         ## step 2 draw nn net
         ############################################################################################################################
         #1 first we project every lumitexel to measurements
-        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num())
-        measurements = input_lumis#self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
-        tmp_noise = torch.randn_like(measurements)*0.05+1.
-        measurements = measurements*tmp_noise
+        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
+        measurements = self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
         
         #TODO add noise here
     

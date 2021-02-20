@@ -191,7 +191,7 @@ class DIFT_QUALITY_CHECKER:
                 ##################################
                 ###STEP 2 transefer lumi to dift codes
                 #################################
-                measurements = rendered_lumi#dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
+                measurements = dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
                 r = torch.eye(3,dtype=torch.float32).to(self.test_device).reshape((1,9))
                 t = torch.zeros(1,3,dtype=torch.float32).to(self.test_device)
                 rt = torch.cat((r,t),dim=1).repeat(cur_batch_size,1)
