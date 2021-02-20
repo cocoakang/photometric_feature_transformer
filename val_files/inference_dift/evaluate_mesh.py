@@ -14,18 +14,17 @@ if __name__ == '__main__':
 
 
     max_bar = 4.0
-
-    fig, ax = plt.subplots(figsize=(6, 1))
-    fig.subplots_adjust(bottom=0.5)
     cmap=plt.get_cmap("jet")
-    norm = matplotlib.colors.Normalize(vmin=0.0, vmax=max_bar)
-    cb1 = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap,
-                                norm=norm,
-                                orientation='horizontal')
-    cb1.set_label('mm')
-    plt.savefig(args.data_root+"bar.png")
+
+    # fig, ax = plt.subplots(figsize=(6, 1))
+    # fig.subplots_adjust(bottom=0.5)
+    # norm = matplotlib.colors.Normalize(vmin=0.0, vmax=max_bar)
+    # cb1 = matplotlib.colorbar.ColorbarBase(ax, cmap=cmap,
+    #                             norm=norm,
+    #                             orientation='horizontal')
+    # cb1.set_label('mm')
+    # plt.savefig(args.data_root+"bar.png")
     # fig.show()
-    exit()
 
     #load gt
     gt = o3d.io.read_point_cloud(args.data_root+"mesh_Gt.ply")
