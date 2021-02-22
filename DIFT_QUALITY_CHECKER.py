@@ -29,7 +29,7 @@ class DIFT_QUALITY_CHECKER:
         ########################################
         ##loading setup configuration        ###
         ########################################
-        self.setup = training_configs["setup_input2"]
+        self.setup = training_configs["setup_input"]
         self.check_type = check_type
         self.dift_code_len = training_configs["dift_code_len"] if check_type == "a" else training_configs["dift_code_config"][check_type][0]
         self.checker_name = checker_name
@@ -151,6 +151,15 @@ class DIFT_QUALITY_CHECKER:
                 if cur_batch_size == 0:
                     break
 
+                r = np.array(
+                    [-0.00279188,0.99990643,0.01339171,0.87580135,0.00890867,-0.4825895,-0.48266365,0.01038114,-0.87574427],np.float32).reshape((1,3,3))
+                t = np.array([ -5.9951129,-70.00106812,549.68054199],np.float32).reshape(1,3,1)
+                tmp_pos = np.matmul(r,np.expand_dims(tmp_pos,axis=2))+t
+                tmp_pos = tmp_pos.reshape((-1,3))
+                tmp_normal = np.matmul(r,np.expand_dims(tmp_normal,axis=2)).reshape((-1,3))
+                tmp_tangent = np.matmul(r,np.expand_dims(tmp_tangent,axis=2)).reshape((-1,3))
+                tmp_binormal = np.matmul(r,np.expand_dims(tmp_binormal,axis=2)).reshape((-1,3))
+
                 tmp_input_params = np.concatenate(
                     [
                         np.zeros((cur_batch_size,3),np.float32),
@@ -192,8 +201,11 @@ class DIFT_QUALITY_CHECKER:
                 ###STEP 2 transefer lumi to dift codes
                 #################################
                 measurements = dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
-                r = torch.eye(3,dtype=torch.float32).to(self.test_device).reshape((1,9))
-                t = torch.zeros(1,3,dtype=torch.float32).to(self.test_device)
+                # r = torch.eye(3,dtype=torch.float32).to(self.test_device).reshape((1,9))
+                r = torch.from_numpy(r).to(self.test_device).reshape((1,9))
+                # t = torch.zeros(1,3,dtype=torch.float32).to(self.test_device)
+                t = torch.from_numpy(t).to(self.test_device).reshape((1,3))
+
                 rt = torch.cat((r,t),dim=1).repeat(cur_batch_size,1)
 
                 # view_mat_model = torch_render.rotation_axis(-sampled_rotate_angles,self.setup.get_rot_axis_torch(self.test_device))#[2*batch,4,4]

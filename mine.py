@@ -111,7 +111,7 @@ class Mine:
 
     def generate_batch_positions_incf(self,batch_size,bounding="box"):
         tmp_pos = np.random.uniform(param_bounds[bounding][0],param_bounds[bounding][1],[batch_size,3]).astype(np.float32)
-        tmp_pos[:,2] = tmp_pos[:,2] + 1500
+        tmp_pos[:,2] = tmp_pos[:,2] + 500
         return tmp_pos
     
     def generate_batch_positions(self,batch_size,bounding="box"):

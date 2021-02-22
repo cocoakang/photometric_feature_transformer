@@ -13,6 +13,8 @@ extrinsic_file = cv2.FileStorage(calib_root+"extrinsic0.yml", cv2.FILE_STORAGE_R
 rvec = np.asarray(extrinsic_file.getNode("rvec").mat())
 tvec = np.asarray(extrinsic_file.getNode("tvec").mat())
 rotM = np.asarray(cv2.Rodrigues(rvec)[0])
+print(rotM)
+print(tvec)
 
 for file_name in ["mat_for_normal.bin","mat_model.bin","visualize_config_torch.bin","visualize_idxs.bin"]:
     shutil.copyfile(from_root+file_name,save_root+file_name)
