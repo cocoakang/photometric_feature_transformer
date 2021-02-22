@@ -63,6 +63,7 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
         training_data_map = {
             "input_lumi":rendered_result,
             "normal":normals_localview,
+            "position":input_positions,
             "rt":input_rt
         }
         # print("[MINE PRO PROCESS] putting data...{}".format(self.mine.name))

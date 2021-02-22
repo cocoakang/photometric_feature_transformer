@@ -151,9 +151,8 @@ class DIFT_QUALITY_CHECKER:
                 if cur_batch_size == 0:
                     break
 
-                r = np.array(
-                    [-0.00279188,0.99990643,0.01339171,0.87580135,0.00890867,-0.4825895,-0.48266365,0.01038114,-0.87574427],np.float32).reshape((1,3,3))
-                t = np.array([ -5.9951129,-70.00106812,549.68054199],np.float32).reshape(1,3,1)
+                r = np.array([0.01405529023075136, 0.9998555390201385, 0.00955771454260651, 0.6177773390653283, -0.0011674785116921882, -0.7863522088296614, -0.786227453192708, 0.016956947976370706, -0.6177045035949105],np.float32).reshape((1,3,3))
+                t = np.array([-8.818201065063477, 30.532512664794922, 472.8992004394531],np.float32).reshape(1,3,1)
                 tmp_pos = np.matmul(r,np.expand_dims(tmp_pos,axis=2))+t
                 tmp_pos = tmp_pos.reshape((-1,3))
                 tmp_normal = np.matmul(r,np.expand_dims(tmp_normal,axis=2)).reshape((-1,3))

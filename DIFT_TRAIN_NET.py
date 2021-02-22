@@ -126,6 +126,7 @@ class DIFT_TRAIN_NET(nn.Module):
         # stamp_name=[]
         input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,3)
         normal_label = batch_data["normal"].to(self.training_device)#(2*batchsize,3)
+        position_label = batch_data["position"].to(self.training_device)#(2*batchsize,3)
         rt = batch_data["rt"].to(self.training_device)#(2*batchsize,9+3)
         
         ############################################################################################################################
@@ -148,20 +149,25 @@ class DIFT_TRAIN_NET(nn.Module):
         E1_loss_map = {}
         if call_type == "train":
             if self.training_mode == "pretrain":
-                for i,code_key in enumerate(origin_codes_map):
-                    dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
+            #     for i,code_key in enumerate(origin_codes_map):
+            #         dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
                     
-                    Y1 = dift_codes[0]#[batch,diftcode_len]
-                    Y2 = dift_codes[1]#[batch,diftcode_len]
+            #         Y1 = dift_codes[0]#[batch,diftcode_len]
+            #         Y2 = dift_codes[1]#[batch,diftcode_len]
                 
-                    tmp_E1,_ = self.compute_e1_loss(Y1,Y2)
+            #         tmp_E1,_ = self.compute_e1_loss(Y1,Y2)
                 
-                    E1_loss_map[code_key+"_loss"] = tmp_E1.item()
-                    if i == 0:
-                        E1 = tmp_E1*self.dift_code_config[code_key][1]
-                    else:
-                        E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
-            elif self.training_mode == "finetune":
+            #         E1_loss_map[code_key+"_loss"] = tmp_E1.item()
+            #         if i == 0:
+            #             E1 = tmp_E1*self.dift_code_config[code_key][1]
+            #         else:
+            #             E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
+            # elif self.training_mode == "finetune":
+            #     Y1 = dift_codes_full[0]#[batch,diftcode_len]
+            #     Y2 = dift_codes_full[1]#[batch,diftcode_len]
+
+            #     E1,_ = self.compute_e1_loss(Y1,Y2)
+            
                 Y1 = dift_codes_full[0]#[batch,diftcode_len]
                 Y2 = dift_codes_full[1]#[batch,diftcode_len]
 
@@ -179,7 +185,8 @@ class DIFT_TRAIN_NET(nn.Module):
                     "distance_matrix":D.cpu(),
                     "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
                     "normal_label":normal_label.cpu(),
-                    "normal_nn":normal_label.cpu()
+                    "normal_nn":normal_label.cpu(),
+                    "global_positions":position_label.cpu()   
                 }
                 term_map = self.visualize_quality_terms(term_map)
                 return term_map
@@ -258,14 +265,15 @@ class DIFT_TRAIN_NET(nn.Module):
         img_stack_list = []
         input_lumis = np.transpose(input_lumis.reshape(2,self.batch_size,input_lumis.shape[1],input_lumis.shape[2]),[1,0,2,3])
         input_lumis = np.reshape(input_lumis,[self.batch_size*2,input_lumis.shape[2],input_lumis.shape[3]])
+        print(input_lumis.shape)
         img_input = torch_render.visualize_lumi(input_lumis,self.setup)#(batchsize*2,imgheight,imgwidth,channel)
 
         normal_label = np.reshape(np.transpose(np.reshape(normal_label,(2,self.batch_size,3)),[1,0,2]),(self.batch_size*2,3))
-        global_positions = np.reshape(np.repeat(np.expand_dims(global_positions,axis=1),2,axis=1),(self.batch_size*2,3))
-        img_input = torch_render.draw_vector_on_lumi(img_input,normal_label,global_positions,self.setup,True,(0.0,1.0,0.0))
+        global_positions = np.reshape(np.transpose(np.reshape(global_positions,(2,self.batch_size,3)),[1,0,2]),(self.batch_size*2,3))
+        # img_input = torch_render.draw_vector_on_lumi(img_input,normal_label,global_positions,self.setup,True,(0.0,1.0,0.0))
         normal_nn = np.transpose(normal_nn.reshape(2,self.batch_size,3),[1,0,2])
         normal_nn = np.reshape(normal_nn,(self.batch_size*2,3))
-        img_input = torch_render.draw_vector_on_lumi(img_input,normal_nn,global_positions,self.setup,True,(1.0,0.0,0.0))
+        # img_input = torch_render.draw_vector_on_lumi(img_input,normal_nn,global_positions,self.setup,True,(1.0,0.0,0.0))
 
         img_input = torch.from_numpy(img_input).reshape(self.batch_size,2,img_input.shape[1],img_input.shape[2],img_input.shape[3])
 
@@ -300,11 +308,13 @@ class DIFT_TRAIN_NET(nn.Module):
         for which_m in range(len(lighting_pattern)):
             lp_pos = np.maximum(0.0,lighting_pattern[which_m])
             lp_pos_max = (lp_pos.max()+1e-6)
+            print("a:",lp_pos.shape)
+            print(self.setup.img_size)
             lp_pos = torch_render.visualize_lumi(lp_pos/lp_pos_max,self.setup,is_batch_lumi=False)#(imgheight,imgwidth,3)
             lp_neg = -np.minimum(0.0,lighting_pattern[which_m])
             lp_neg_max = (lp_neg.max()+1e-6)
             lp_neg = torch_render.visualize_lumi(lp_neg/lp_neg_max,self.setup,is_batch_lumi=False)#(imgheight,imgwidth,3)
-
+            print("b",lp_pos.shape)
             lighting_pattern_collector.append(lp_pos)
             lighting_pattern_collector.append(lp_neg)
 

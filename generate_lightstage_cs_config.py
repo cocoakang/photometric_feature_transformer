@@ -3,9 +3,9 @@ import os
 import cv2
 import shutil
 
-from_root = "/Users/ross/CVPR21/torch_renderer/wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
-save_root = "/Users/ross/CVPR21/torch_renderer/wallet_of_torch_renderer/blackbox20_render_configs_1x1_cs/"
-calib_root = "/Users/ross/CVPR21/device_configuration/2020_11_2/"
+from_root = "D:/CVPR_DIFT/torch_renderer/wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
+save_root = "D:/CVPR_DIFT/torch_renderer/wallet_of_torch_renderer/blackbox20_render_configs_1x1_cs/"
+calib_root = "D:/SIGA20/device_configuration/2020_8_19/"
 
 os.makedirs(save_root,exist_ok=True)
 
@@ -13,15 +13,16 @@ extrinsic_file = cv2.FileStorage(calib_root+"extrinsic0.yml", cv2.FILE_STORAGE_R
 rvec = np.asarray(extrinsic_file.getNode("rvec").mat())
 tvec = np.asarray(extrinsic_file.getNode("tvec").mat())
 rotM = np.asarray(cv2.Rodrigues(rvec)[0])
-print(rotM)
-print(tvec)
+print(rotM.reshape((-1)).tolist())
+print(tvec.reshape((-1)).tolist())
 
 for file_name in ["mat_for_normal.bin","mat_model.bin","visualize_config_torch.bin","visualize_idxs.bin"]:
     shutil.copyfile(from_root+file_name,save_root+file_name)
 
 cam_pos = np.fromfile(from_root+"cam_pos.bin",np.float32).reshape((3,1))
 cam_pos = np.matmul(rotM,cam_pos)+tvec
-cam_pos = np.zeros_like(np.reshape(cam_pos,(-1)))
+cam_pos = np.reshape(cam_pos,(-1))
+print("cam_Pos:",cam_pos)
 
 cam_pos.astype(np.float32).tofile(save_root+"cam_pos.bin")
 

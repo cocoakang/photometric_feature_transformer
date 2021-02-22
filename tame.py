@@ -13,7 +13,7 @@ import numpy as np
 import os
 TORCH_RENDER_PATH="../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
-from torch_render import Setup_Config_Freeform
+from torch_render import Setup_Config
 from multiprocessing import Queue
 import math
 import re
@@ -73,11 +73,11 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
-    parser.add_argument("--pretrained_model_pan",type=str,default="")
+    parser.add_argument("--pretrained_model_pan",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/lightstage_global_unstructured_correctcsdata/models/training_state.pkl")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
     parser.add_argument("--pretrained_model_pan_v",type=str,default="")
     parser.add_argument("--start_seed",type=int,default=84057)
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_mine_seed",type=int,default=51721)
     parser.add_argument("--val_mine_seed",type=int,default=992831)
     parser.add_argument("--search_model",action="store_true")
-    parser.add_argument("--m_len",type=int,default=3)
+    parser.add_argument("--m_len",type=int,default=8)
     parser.add_argument("--code_len",type=int,default=5)
     parser.add_argument("--id",type=int,default=-1)
     parser.add_argument("--search_which",default="geometry",choices=["material","geometry"])
@@ -110,12 +110,12 @@ if __name__ == "__main__":
     standard_rendering_parameters = {
         "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1_cs/"
     }
-    setup_input = Setup_Config_Freeform(standard_rendering_parameters)
+    setup_input = Setup_Config(standard_rendering_parameters)
     # setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
     standard_rendering_parameters = {
         "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
     }
-    setup_input2 = Setup_Config_Freeform(standard_rendering_parameters)
+    setup_input2 = Setup_Config(standard_rendering_parameters)
     # setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
 
     ##build train_configs
@@ -166,7 +166,7 @@ if __name__ == "__main__":
             dift_code_config["global"] = (g_d_len,10.0)
             dift_code_config["cat"] = (m_d_len+g_d_len,10.0)
 
-    train_configs["measurements_length"] = 16#sum([partition[a_key] for a_key in partition])
+    train_configs["measurements_length"] = args.m_len#sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
     train_configs["dift_code_config"] = dift_code_config
     if train_configs["training_mode"] == "pretrain":
@@ -232,10 +232,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/lightstage_global_unstructured_newcsdata")
-        # os.makedirs("../log_no_where2/",exist_ok=True)
-        # os.system("rm -r ../log_no_where2/*")
-        # writer = SummaryWriter(log_dir="../log_no_where2/")
+        # writer = SummaryWriter(log_dir="runs/lightstage_global_unstructured_correctcsdata")
+        os.makedirs("../log_no_where2/",exist_ok=True)
+        os.system("rm -r ../log_no_where2/*")
+        writer = SummaryWriter(log_dir="../log_no_where2/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
@@ -402,14 +402,14 @@ if __name__ == "__main__":
 
         ## 2 check quality
         if global_step % CHECK_QUALITY_ITR == 0 or global_step == 1000:
-            # print("val queue size:",val_queue.qsize())
-            # val_data = val_queue.get()
+            print("val queue size:",val_queue.qsize())
+            val_data = val_queue.get()
             # val_Semaphore.release()
-            # print("got check")
-            # with torch.no_grad():
-            #     training_net.eval()
-            #     quality_terms = training_net(val_data,call_type="check_quality",global_step=global_step)
-            # log_quality(writer,quality_terms,global_step)
+            print("got check")
+            with torch.no_grad():
+                training_net.eval()
+                quality_terms = training_net(val_data,call_type="check_quality",global_step=global_step)
+            log_quality(writer,quality_terms,global_step)
 
             #check with real(real fake) data
             with torch.no_grad():
