@@ -19,13 +19,13 @@ class DIFT_linear_projection(nn.Module):
         # tmp_kernel_np = tmp_kernel.cpu().numpy()
         # tmp_kernel_np.astype(np.float32).tofile("/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/BRDF_feature_extract/logs/sig20_init/details/params_init/0_tc.bin")
         
-        # tmp_kernel_np = np.fromfile("/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/BRDF_feature_extract/logs/sig20_init/details/params_init/0.bin",np.float32).reshape([3,24576,4])
+        tmp_kernel_np = np.fromfile("/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/11_6_linear/models/0/W.bin",np.float32).reshape([8,24576,3])[:,:,0]
         # tmp_kernel_np = np.transpose(tmp_kernel_np,[2,1,0])
-        # tmp_kernel = torch.from_numpy(tmp_kernel_np)
+        tmp_kernel = torch.from_numpy(tmp_kernel_np)
 
         self.kernel = torch.nn.Parameter(
             data = tmp_kernel,
-            requires_grad=True
+            requires_grad=False
         )#(m_len,lumi_len,3)
         # self.rgb_tensor = self.setup_input.get_color_tensor(self.kernel.device).float()#(3,3,3) (light,cam,brdf)
         # self.rgb_tensor = self.rgb_tensor.permute(0,2,1).reshape(9,3)#(3,3,3) (light,brdf,cam)

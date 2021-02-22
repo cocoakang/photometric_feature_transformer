@@ -73,11 +73,11 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=2)
+    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--checker_gpu",type=int,default=2)
     parser.add_argument("--log_file_name",type=str,default="")
-    parser.add_argument("--pretrained_model_pan",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/lightstage_global_unstructured_correctcsdata/models/training_state.pkl")
+    parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
     parser.add_argument("--pretrained_model_pan_v",type=str,default="")
     parser.add_argument("--start_seed",type=int,default=84057)
@@ -232,10 +232,10 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        # writer = SummaryWriter(log_dir="runs/lightstage_global_unstructured_correctcsdata")
-        os.makedirs("../log_no_where2/",exist_ok=True)
-        os.system("rm -r ../log_no_where2/*")
-        writer = SummaryWriter(log_dir="../log_no_where2/")
+        writer = SummaryWriter(log_dir="runs/lightstage_global_unstructured_correctcsdata_withlog_cvprlp")
+        # os.makedirs("../log_no_where2/",exist_ok=True)
+        # os.system("rm -r ../log_no_where2/*")
+        # writer = SummaryWriter(log_dir="../log_no_where2/")
     else:
         writer = SummaryWriter(args.log_file_name)
     log_dir = writer.get_logdir()
