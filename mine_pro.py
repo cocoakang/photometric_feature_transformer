@@ -4,7 +4,7 @@ import math
 import torch
 import random
 from multiprocessing import Process
-from mine import Mine
+from mine_lightstage_structured import Mine
 from mine_hard import Mine_Hard
 import time
 import sys
@@ -12,7 +12,6 @@ TORCH_RENDER_PATH="../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
 import torch_render
 from multiview_renderer_mt import Multiview_Renderer
-from torch_render import Setup_Config
 from generate_training_data import compute_loss_weight
 
 def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):

@@ -149,29 +149,29 @@ class DIFT_TRAIN_NET(nn.Module):
         E1_loss_map = {}
         if call_type == "train":
             if self.training_mode == "pretrain":
-            #     for i,code_key in enumerate(origin_codes_map):
-            #         dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
+                for i,code_key in enumerate(origin_codes_map):
+                    dift_codes = origin_codes_map[code_key].reshape(2,self.batch_size,self.dift_code_config[code_key][0])
                     
-            #         Y1 = dift_codes[0]#[batch,diftcode_len]
-            #         Y2 = dift_codes[1]#[batch,diftcode_len]
+                    Y1 = dift_codes[0]#[batch,diftcode_len]
+                    Y2 = dift_codes[1]#[batch,diftcode_len]
                 
-            #         tmp_E1,_ = self.compute_e1_loss(Y1,Y2)
+                    tmp_E1,_ = self.compute_e1_loss(Y1,Y2)
                 
-            #         E1_loss_map[code_key+"_loss"] = tmp_E1.item()
-            #         if i == 0:
-            #             E1 = tmp_E1*self.dift_code_config[code_key][1]
-            #         else:
-            #             E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
-            # elif self.training_mode == "finetune":
-            #     Y1 = dift_codes_full[0]#[batch,diftcode_len]
-            #     Y2 = dift_codes_full[1]#[batch,diftcode_len]
-
-            #     E1,_ = self.compute_e1_loss(Y1,Y2)
-            
+                    E1_loss_map[code_key+"_loss"] = tmp_E1.item()
+                    if i == 0:
+                        E1 = tmp_E1*self.dift_code_config[code_key][1]
+                    else:
+                        E1 = E1 + tmp_E1*self.dift_code_config[code_key][1]
+            elif self.training_mode == "finetune":
                 Y1 = dift_codes_full[0]#[batch,diftcode_len]
                 Y2 = dift_codes_full[1]#[batch,diftcode_len]
 
                 E1,_ = self.compute_e1_loss(Y1,Y2)
+            
+            # Y1 = dift_codes_full[0]#[batch,diftcode_len]
+            # Y2 = dift_codes_full[1]#[batch,diftcode_len]
+
+            # E1,_ = self.compute_e1_loss(Y1,Y2)
 
         elif call_type == "val" or call_type == "check_quality":
             Y1 = dift_codes_full[0]#[batch,diftcode_len]

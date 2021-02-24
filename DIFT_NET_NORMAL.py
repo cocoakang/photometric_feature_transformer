@@ -7,7 +7,6 @@ import math
 from DIFT_NET_CONCAT import DIFT_NET_CONCAT
 from DIFT_NET_G_DIFF_LOCAL import DIFT_NET_G_DIFF_LOCAL
 from DIFT_NET_G_DIFF_GLOBAL import DIFT_NET_G_DIFF_GLOBAL
-from DIFT_NET_G_SPEC import DIFT_NET_G_SPEC
 
 class DIFT_NET_NORMAL(nn.Module):
     def __init__(self,args):

@@ -119,15 +119,17 @@ class DIFT_QUALITY_CHECKER:
         self.valid_pixels_num = self.valid_pixels[0].shape[0]
         self.fake_index = np.stack(self.valid_pixels[::-1],axis=1).astype(np.int32)#(validnum,2),xy
 
-        self.rts = self.setup.get_all_rts(self.test_device)
-        self.R_matrixs = []
-        self.T_vecs = []
-        for R_matrix,T_vec in self.rts:
-            self.R_matrixs.append(R_matrix)
-            self.T_vecs.append(T_vec)
+        self.rts = self.setup.get_rts(torch.linspace(0.0,math.pi*2.0,training_configs["sample_view_num_whentest"],dtype=torch.float32,device=self.test_device).reshape(-1,1),self.test_device)
+        self.R_matrixs = self.rts[0]
+        self.T_vecs = self.rts[1]
+        # self.R_matrixs = []
+        # self.T_vecs = []
+        # for R_matrix,T_vec in self.rts:
+        #     self.R_matrixs.append(R_matrix)
+        #     self.T_vecs.append(T_vec)
 
-        self.R_matrixs = torch.stack(self.R_matrixs,dim=0)
-        self.T_vecs = torch.stack(self.T_vecs,dim=0)
+        # self.R_matrixs = torch.stack(self.R_matrixs,dim=0)
+        # self.T_vecs = torch.stack(self.T_vecs,dim=0)
 
 
     def check_quality(self,dift_trainer,writer,global_step):
@@ -162,13 +164,13 @@ class DIFT_QUALITY_CHECKER:
                 if cur_batch_size == 0:
                     break
 
-                r = np.array([0.01405529023075136, 0.9998555390201385, 0.00955771454260651, 0.6177773390653283, -0.0011674785116921882, -0.7863522088296614, -0.786227453192708, 0.016956947976370706, -0.6177045035949105],np.float32).reshape((1,3,3))
-                t = np.array([-8.818201065063477, 30.532512664794922, 472.8992004394531],np.float32).reshape(1,3,1)
-                tmp_pos = np.matmul(r,np.expand_dims(tmp_pos,axis=2))+t
-                tmp_pos = tmp_pos.reshape((-1,3))
-                tmp_normal = np.matmul(r,np.expand_dims(tmp_normal,axis=2)).reshape((-1,3))
-                tmp_tangent = np.matmul(r,np.expand_dims(tmp_tangent,axis=2)).reshape((-1,3))
-                tmp_binormal = np.matmul(r,np.expand_dims(tmp_binormal,axis=2)).reshape((-1,3))
+                # r = np.array([0.01405529023075136, 0.9998555390201385, 0.00955771454260651, 0.6177773390653283, -0.0011674785116921882, -0.7863522088296614, -0.786227453192708, 0.016956947976370706, -0.6177045035949105],np.float32).reshape((1,3,3))
+                # t = np.array([-8.818201065063477, 30.532512664794922, 472.8992004394531],np.float32).reshape(1,3,1)
+                # tmp_pos = np.matmul(r,np.expand_dims(tmp_pos,axis=2))+t
+                # tmp_pos = tmp_pos.reshape((-1,3))
+                # tmp_normal = np.matmul(r,np.expand_dims(tmp_normal,axis=2)).reshape((-1,3))
+                # tmp_tangent = np.matmul(r,np.expand_dims(tmp_tangent,axis=2)).reshape((-1,3))
+                # tmp_binormal = np.matmul(r,np.expand_dims(tmp_binormal,axis=2)).reshape((-1,3))
 
                 tmp_input_params = np.concatenate(
                     [
@@ -210,7 +212,7 @@ class DIFT_QUALITY_CHECKER:
                 ##################################
                 ###STEP 2 transefer lumi to dift codes
                 #################################
-                measurements = rendered_lumi#dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
+                measurements = dift_trainer.linear_projection(rendered_lumi)#(cur_batch_size/cur_batch_size*3,measurement_len,1)
                 r = self.R_matrixs[0].to(self.test_device).reshape((1,9))
                 t = self.T_vecs[0].to(self.test_device).reshape((1,3))
                 rt = torch.cat((r,t),dim=1).repeat(cur_batch_size,1)
