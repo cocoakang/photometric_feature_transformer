@@ -232,7 +232,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/lightstage_global_unstructured_correctcsdata_withlog_cvprlp")
+        writer = SummaryWriter(log_dir="runs/diligent_global_local_reading_structured_correct_newtest")
         # os.makedirs("../log_no_where2/",exist_ok=True)
         # os.system("rm -r ../log_no_where2/*")
         # writer = SummaryWriter(log_dir="../log_no_where2/")

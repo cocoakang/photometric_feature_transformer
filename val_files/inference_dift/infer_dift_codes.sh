@@ -1,8 +1,8 @@
 #!/bin/bash
 
 DATA_ROOT="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/"
-MODEL_ROOT="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/diligent_global_reading_unstructured_longer_correct/models/"
-MODEL_FILE_NAME="model_state_1710000.pkl"
+MODEL_ROOT="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/dift_extractor/runs/diligent_global_reading_structured_correct_newtest/models/"
+MODEL_FILE_NAME="model_state_240000.pkl"
 
 SAMPLE_VIEW_NUM=20
 ROTATE_VIEW_NUM=20
