@@ -14,8 +14,8 @@ if __name__ == "__main__":
     task_counter = 0
     pool = []
     for which_itr in range(50):
-        for m_len in [3,6,8,16]:
-            for code_len in [7,64,128]:
+        for m_len in [8]:
+            for code_len in [4,7,64]:
                 tmp_seed = np.random.randint(0,9993748,size=5)
                 cur_gpu = deviceIDs[task_counter % gpu_num]
                 tmp_process = Popen(
