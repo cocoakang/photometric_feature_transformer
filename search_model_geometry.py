@@ -13,9 +13,10 @@ if __name__ == "__main__":
     print("available gpu num:",gpu_num)
     task_counter = 0
     pool = []
-    for which_itr in range(50):
-        for m_len in [8]:
-            for code_len in [4,7,64]:
+    which_itr = 0
+    for m_len in [3,5,9,7,1]:
+        for code_len in [7,5,9,3,128,64,32,16,11,1]:
+            for global_local in ["global","local"]:
                 tmp_seed = np.random.randint(0,9993748,size=5)
                 cur_gpu = deviceIDs[task_counter % gpu_num]
                 tmp_process = Popen(
@@ -44,7 +45,7 @@ if __name__ == "__main__":
                         "--code_len",
                         "{}".format(code_len),
                         "--log_file_name",
-                        "runs/mlen_{}_codelen_{}_itr{}/".format(m_len,code_len,which_itr),
+                        "runs/{}_mlen_{}_codelen_{}_itr{}/".format(global_local,m_len,code_len,which_itr),
                     ]
                 )
                 pool.append(tmp_process)

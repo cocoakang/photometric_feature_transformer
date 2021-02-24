@@ -18,7 +18,7 @@ from multiprocessing import Queue
 import math
 import re
 
-MAX_ITR = 5100
+MAX_ITR = 100100
 VALIDATE_ITR = 5
 CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
@@ -87,6 +87,7 @@ if __name__ == "__main__":
     parser.add_argument("--val_mine_seed",type=int,default=992831)
     parser.add_argument("--search_model",action="store_true")
     parser.add_argument("--m_len",type=int,default=4)
+    parser.add_argument("--global_local",default="global",choices=["global","local"])
     parser.add_argument("--code_len",type=int,default=5)
     parser.add_argument("--id",type=int,default=-1)
     parser.add_argument("--search_which",default="geometry",choices=["material","geometry"])
@@ -153,9 +154,14 @@ if __name__ == "__main__":
         if train_configs["training_mode"] == "pretrain":
             # partition["local"] = 0
             # partition["global"] = setup_input.get_light_num()
-            dift_code_config["local_noalbedo"] = (0,1.0)
-            dift_code_config["global"] = (args.code_len,10.0)
-            dift_code_config["cat"] = (args.code_len,10.0)
+            if args.global_local == "global":
+                dift_code_config["local_noalbedo"] = (0,1.0)
+                dift_code_config["global"] = (args.code_len,10.0)
+                dift_code_config["cat"] = (args.code_len,10.0)
+            elif args.global_local == "local":
+                dift_code_config["local_noalbedo"] = (args.code_len,1.0)
+                dift_code_config["global"] = (0,10.0)
+                dift_code_config["cat"] = (args.code_len,10.0)
         elif train_configs["training_mode"] == "finetune":
             print("not ready")
             exit()
