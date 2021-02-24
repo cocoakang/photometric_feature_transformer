@@ -5,8 +5,8 @@ import GPUtil
 import time
 
 if __name__ == "__main__":
-    random.seed(22132)
-    np.random.seed(31222)
+    random.seed(2232)
+    np.random.seed(3222)
 
     deviceIDs = GPUtil.getAvailable(limit = 5)
     gpu_num = len(deviceIDs)
@@ -14,8 +14,8 @@ if __name__ == "__main__":
     task_counter = 0
     pool = []
     for which_itr in range(50):
-        for m_len in [3]:
-            for code_len in [7]:
+        for m_len in [3,6,8,16]:
+            for code_len in [7,64,128]:
                 tmp_seed = np.random.randint(0,9993748,size=5)
                 cur_gpu = deviceIDs[task_counter % gpu_num]
                 tmp_process = Popen(

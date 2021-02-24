@@ -17,7 +17,7 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
         input_size = self.measurements_length*1#+self.view_code_len
         
         self.dift_part = self.dift_part_f(input_size)
-        self.dift_part2 = self.dift_part_f2(self.internal_code_len+9+3)
+        self.dift_part2 = self.dift_part_f2(self.internal_code_len+3)
 
     def dift_part_f(self,input_size,name_prefix = "DIFT_"):
         layer_stack = OrderedDict()
@@ -244,7 +244,13 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
         # dift_codes = torch.nn.functional.normalize(dift_codes,dim=1)
 
         # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
-        dift_codes_normal = torch.cat([dift_codes,cossin],dim=1)
+
+        r_matrix = cossin[:,:9].reshape(batch_size,3,3)
+        t_vec = cossin[:,-3:].reshape(batch_size,3,1)
+        cam_pos = -torch.matmul(r_matrix.permute(0,2,1),t_vec)
+        cam_pos = cam_pos.reshape(batch_size,3)
+
+        dift_codes_normal = torch.cat([dift_codes,cam_pos],dim=1)
         # dift_codes_pos = nn.functional.sigmoid(self.dift_part2(dift_codes_pos))
         dift_codes_normal = self.dift_part2(dift_codes_normal)
         dift_codes_normal = torch.nn.functional.normalize(dift_codes_normal,dim=1)
