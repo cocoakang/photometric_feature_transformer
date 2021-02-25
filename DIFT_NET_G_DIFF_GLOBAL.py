@@ -296,14 +296,14 @@ class DIFT_NET_G_DIFF_GLOBAL(nn.Module):
 
         # dift_codes_pos = torch.cat([dift_codes,view_mat_model_t],dim=1)
 
-        r_matrix = cossin[:,:9].reshape(batch_size,3,3)
-        t_vec = cossin[:,-3:].reshape(batch_size,3,1)
-        cam_pos = -torch.matmul(r_matrix.permute(0,2,1),t_vec)
-        cam_pos = cam_pos.reshape(batch_size,3)
+        # r_matrix = cossin[:,:9].reshape(batch_size,3,3)
+        # t_vec = cossin[:,-3:].reshape(batch_size,3,1)
+        # cam_pos = -torch.matmul(r_matrix.permute(0,2,1),t_vec)
+        # cam_pos = cam_pos.reshape(batch_size,3)
         
         # cossin = self.dift_part1(cossin)
 
-        dift_codes_normal = torch.cat([dift_codes,cossin[:,:9],cam_pos],dim=1)
+        dift_codes_normal = torch.cat([dift_codes,cossin],dim=1)
         # dift_codes_pos = nn.functional.sigmoid(self.dift_part2(dift_codes_pos))
         dift_codes_normal = self.dift_part2(dift_codes_normal)
         dift_codes_normal = torch.nn.functional.normalize(dift_codes_normal,dim=1)

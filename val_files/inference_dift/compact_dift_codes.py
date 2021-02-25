@@ -46,7 +46,7 @@ if __name__ == "__main__":
     
     assert ptr == point_num,"ptr:{} pointnum:{}".format(ptr,point_num)
 
-    subfeatures = features[np.random.randint(features.shape[0], size=features.shape[0]), :].copy()
+    subfeatures = features[np.random.randint(features.shape[0], size=features.shape[0]//8), :].copy()
     # subfeatures = features[0:ptr]
     ######step 2 pca feature###################
     print("PCA to 3...")
@@ -80,10 +80,12 @@ if __name__ == "__main__":
         if args.test_on_the_fly:
             file_name = args.root+"{}/cam00_index_nocc.bin".format(which_view)
         else:
-            file_name = args.root+"view_{:02d}/cam00_index_nocc.bin".format(which_view+1)
+            # file_name = args.root+"view_{:02d}/cam00_index_nocc.bin".format(which_view+1)
+            file_name = args.root+"{}/cam00_index_nocc.bin".format(which_view)
         with open(file_name,"rb") as pf:
             if args.test_on_the_fly:
                 pixel_num = np.fromfile(pf,np.int32,1)[0]
+            pixel_num = np.fromfile(pf,np.int32,1)[0]
             idxes = np.fromfile(pf,np.int32).reshape([-1,2])#(x,y)
             # assert idxes.shape[0] == pixel_num,"index.shape[0]={} pixel_num={}".format(idxes.shape[0],pixel_num)
             # print("pixel num:{}".format(pixel_num))

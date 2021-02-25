@@ -43,6 +43,19 @@ class DIFT_NET(nn.Module):
     
         # dift_codes_albedo = self.albedo_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
 
+        r_matrix = cossin[:,:9].reshape(batch_size,3,3)
+        t_vec = cossin[:,-3:].reshape(batch_size,3,1)
+        cam_pos = -torch.matmul(r_matrix.permute(0,2,1),t_vec)
+        cam_pos = cam_pos.reshape(batch_size,3)
+
+        cossin = torch.cat(
+            [
+                cossin[:,:9],
+                cam_pos
+            ],
+            dim=1
+        )
+
         code_list = []
         origin_codes_map = {}
         if self.dift_code_config["local_noalbedo"][0] > 0:
