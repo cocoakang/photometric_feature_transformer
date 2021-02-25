@@ -2,7 +2,7 @@
 
 SET DATA_ROOT="G:/CVPR21_freshmeat/11_7_mainresults/iccv_cat/"
 SET MODEL_ROOT="G:/CVPR21_models/iccv_test/models/"
-SET MODEL_FILE_NAME="model_state_300000.pkl"
+SET MODEL_FILE_NAME="model_state_1080000.pkl"
 
 SET SAMPLE_VIEW_NUM=24
 SET ROTATE_VIEW_NUM=24

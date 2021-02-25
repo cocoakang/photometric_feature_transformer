@@ -70,7 +70,7 @@ if __name__ == "__main__":
     ################################################
     ####infer here
     ################################################
-    sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=args.sample_view_num,endpoint=False)
+    sampled_rotate_angles_np = np.linspace(0.0,-math.pi*2.0,num=args.sample_view_num,endpoint=False)
     sampled_rotate_angles_np = np.expand_dims(sampled_rotate_angles_np,axis=0).astype(np.float32)
 
     for which_view in range(args.rotate_num):
