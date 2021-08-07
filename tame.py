@@ -13,7 +13,7 @@ import numpy as np
 import os
 TORCH_RENDER_PATH="../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
-from torch_render import Setup_Config,Setup_Config_Structured_Lightstage
+from torch_render import Setup_Config_Lightfield
 from multiprocessing import Queue
 import math
 import re
@@ -53,23 +53,6 @@ def log_quality(writer,quality_terms,global_step):
     term_key = "distance_matrix"
     writer.add_image("{}".format(term_key),quality_terms[term_key], global_step=global_step, dataformats='CHW')
 
-def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
-    x = re.search("learn_l2_ml", pretrained_model_pan_h)
-    start_idx = x.start()+len("learn_l2_ml")
-    m_m_len = int(pretrained_model_pan_h[start_idx:start_idx+1])
-    x = re.search("_dlna", pretrained_model_pan_h)
-    start_idx = x.start()+len("_dlna")
-    m_d_len = int(pretrained_model_pan_h[start_idx:start_idx+1])
-
-    x = re.search("_mg", pretrained_model_pan_v)
-    start_idx = x.start()+len("_mg")
-    g_m_len = int(pretrained_model_pan_v[start_idx:start_idx+1])
-    x = re.search("_dg", pretrained_model_pan_v)
-    start_idx = x.start()+len("_dg")
-    g_d_len = int(pretrained_model_pan_v[start_idx:start_idx+1])
-
-    return m_m_len,m_d_len,g_m_len,g_d_len
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
@@ -78,17 +61,13 @@ if __name__ == "__main__":
     parser.add_argument("--checker_gpu",type=int,default=0)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_h",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_v",type=str,default="")
     parser.add_argument("--start_seed",type=int,default=84057)
     parser.add_argument("--torch_manual_seed",type=int,default=1827397)
     parser.add_argument("--torch_cuda_manual_seed_all",type=int,default=1827397)
     parser.add_argument("--train_mine_seed",type=int,default=51721)
     parser.add_argument("--val_mine_seed",type=int,default=992831)
     parser.add_argument("--search_model",action="store_true")
-    parser.add_argument("--m_len",type=int,default=4)
-    parser.add_argument("--global_local",default="global",choices=["global","local"])
-    parser.add_argument("--code_len",type=int,default=5)
+    parser.add_argument("--m_len",type=int,default=16)
     parser.add_argument("--id",type=int,default=-1)
     parser.add_argument("--search_which",default="geometry",choices=["material","geometry"])
 
@@ -109,87 +88,36 @@ if __name__ == "__main__":
 
     ##about rendering devices
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/light_field/"
     }
-    setup_input = Setup_Config_Structured_Lightstage(standard_rendering_parameters)
-    setup_input.to_cs()
-
-    standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/blackbox20_render_configs_1x1/"
-    }
-    setup_input2 = Setup_Config_Structured_Lightstage(standard_rendering_parameters)
-
+    setup_input = Setup_Config_Lightfield(standard_rendering_parameters)
+    
     ##build train_configs
     train_configs = {}
-    train_configs["rendering_device"] = torch.device("cuda:{}".format(args.rendering_gpu))
-    train_configs["training_device"] = torch.device("cuda:{}".format(args.training_gpu))
-    train_configs["sample_view_num_whentest"] = 24
-    train_configs["lumitexel_downsample_rate"] = 1
-    train_configs["lumitexel_length"] = 24576 // train_configs["lumitexel_downsample_rate"] // train_configs["lumitexel_downsample_rate"]
+    train_configs["rendering_device"] = torch.device("cpu:0") if sys.platform == "darwin" else torch.device("cuda:{}".format(args.rendering_gpu))
+    train_configs["training_device"] = torch.device("cpu:0") if sys.platform == "darwin" else torch.device("cuda:{}".format(args.training_gpu))
+    train_configs["lumitexel_length"] = setup_input.get_light_num()
     train_configs["noise_stddev"] = 0.01
     train_configs["setup_input"] = setup_input
-    train_configs["setup_input2"] = setup_input2
-    train_configs["training_mode"] = "pretrain" if (args.pretrained_model_pan_h == "" and args.pretrained_model_pan_v == "") else "finetune"
 
     train_configs["RENDER_SCALAR"] = 5*1e3/math.pi
 
     partition = {}#m_len
     dift_code_config = {}#dift_code_len,losslambda
-    if args.search_model:
-        print("not ready")
-        exit()
-        if args.search_which == "material":
-            partition["local"] = args.m_len
-            partition["global"] = 0
-            dift_code_config["local_noalbedo"] = (args.code_len,1.0)
-            dift_code_config["global"] = (0,10.0)
-        elif args.search_which == "geometry":
-            partition["local"] = 0
-            partition["global"] = args.m_len
-            dift_code_config["local_noalbedo"] = (0,1.0)
-            dift_code_config["global"] = (args.code_len,10.0)
-        else:
-            print("unkown search type")
-    else:
-        if train_configs["training_mode"] == "pretrain":
-            # partition["local"] = 0
-            # partition["global"] = setup_input.get_light_num()
-            if args.global_local == "global":
-                dift_code_config["local_noalbedo"] = (0,1.0)
-                dift_code_config["global"] = (args.code_len,10.0)
-                dift_code_config["cat"] = (args.code_len,10.0)
-            elif args.global_local == "local":
-                dift_code_config["local_noalbedo"] = (args.code_len,1.0)
-                dift_code_config["global"] = (0,10.0)
-                dift_code_config["cat"] = (args.code_len,10.0)
-        elif train_configs["training_mode"] == "finetune":
-            print("not ready")
-            exit()
-            m_m_len,m_d_len,g_m_len,g_d_len = parse_vh_config(args.pretrained_model_pan_h,args.pretrained_model_pan_v)
-            partition["local"] = m_m_len
-            partition["global"] = g_m_len
-            dift_code_config["local_noalbedo"] = (m_d_len,1.0)
-            dift_code_config["global"] = (g_d_len,10.0)
-            dift_code_config["cat"] = (m_d_len+g_d_len,10.0)
+    dift_code_config["local"] = (32,1.0)
+    dift_code_config["global"] = (32,1.0)
+    dift_code_config["cat"] = (64,1.0)
 
     train_configs["measurements_length"] = args.m_len#sum([partition[a_key] for a_key in partition])
     train_configs["partition"] = partition
     train_configs["dift_code_config"] = dift_code_config
-    if train_configs["training_mode"] == "pretrain":
-        train_configs["dift_code_len"] = sum([dift_code_config[a_key][0] for a_key in dift_code_config if a_key != "cat"])
-    else:
-        print("not ready")
-        exit()
-        train_configs["dift_code_len"] = dift_code_config["cat"][0]
+    train_configs["dift_code_len"] = sum([dift_code_config[a_key][0] for a_key in dift_code_config if a_key != "cat"])
 
     lambdas = {}
     lambdas["E1"] = 1.0
     # lambdas["E2"] =1e-1
     lambdas["reg_loss"] = 1.0
     train_configs["lambdas"] = lambdas
-
-    train_configs["global_data_loss"] = 1.0
-    train_configs["local_data_loss"] = 1.0
 
     train_configs["data_root"] = args.data_root
     train_configs["batch_size"] = 25
@@ -206,20 +134,13 @@ if __name__ == "__main__":
     # val_queue_mine_v = Queue(3)
     # val_queue_mine_h = Queue(3)
     # val_queue_mine_a = Queue(3)
-    tmp_noise_config_train_hard = {
-        "position" : 2,
-        "frame_normal_v" : 50.0,
-        "frame_normal_h" : 50.0,
-        "theta" : 0.1,
-        "axay" : 0.1,
-        "pd" : 0.1,
-        "ps" : 0.1
-    }
     train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,args.train_mine_seed)
     train_mine_global.start()
-    val_mine = Mine_Pro(train_configs,"val",val_queue,None,args.val_mine_seed,None)
-    val_mine.start()
-    
+    # val_mine = Mine_Pro(train_configs,"val",val_queue,None,args.val_mine_seed,None)
+    # val_mine.start()
+    print("test bar")
+    exit()
+
     ##########################################
     ### net and optimizer
     ##########################################

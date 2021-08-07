@@ -31,24 +31,6 @@ class Mine:
 
         self.rendering_device = train_configs["rendering_device"]
 
-        self.rts = self.setup_input.get_all_rts(self.rendering_device)#(list of (R_matrix,T_vec))
-
-        self.R_matrixs = []
-        self.T_vecs = []
-        for R_matrix,T_vec in self.rts:
-            self.R_matrixs.append(R_matrix)
-            self.T_vecs.append(T_vec)
-
-        self.R_matrixs = torch.stack(self.R_matrixs,dim=0)
-        self.T_vecs = torch.stack(self.T_vecs,dim=0)
-
-        # self.sampled_rotate_angles_np = np.linspace(0.0,math.pi*2.0,num=self.sample_view_num,endpoint=False)#[self.sample_view_num]
-        # self.sampled_rotate_angles_np = np.expand_dims(self.sampled_rotate_angles_np,axis=0)
-        # self.sampled_rotate_angles_np = np.repeat(self.sampled_rotate_angles_np,self.batch_size,axis=0)
-        # self.sampled_rotate_angles_np = self.sampled_rotate_angles_np.astype(np.float32)
-        # self.sampled_rotate_angles_tc = torch.from_numpy(self.sampled_rotate_angles_np).to(self.rendering_device)
-        # self.sampled_rotate_angles_tc = self.sampled_rotate_angles_tc.reshape(self.batch_size*self.sample_view_num,1)#(batchsize*sample_view_num,1)
-
         self.name = name
         if self.name == "train":
             self.pf_train = open(train_configs["data_root"]+"cooked_params_train.bin","rb")
