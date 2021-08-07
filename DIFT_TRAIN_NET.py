@@ -13,7 +13,6 @@ TORCH_RENDER_PATH="../torch_renderer/"
 
 sys.path.append(TORCH_RENDER_PATH)
 import torch_render
-from multiview_renderer_mp import Multiview_Renderer
 from torch_render import Setup_Config
 from DIFT_linear_projection import DIFT_linear_projection
 from ALBEDO_NET import ALBEDO_NET

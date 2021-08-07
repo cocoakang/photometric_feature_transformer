@@ -4,8 +4,7 @@ import math
 import torch
 import random
 from multiprocessing import Process
-from mine_lightstage_structured import Mine
-from mine_hard import Mine_Hard
+from mine import Mine
 import time
 import sys
 TORCH_RENDER_PATH="../torch_renderer/"
@@ -14,33 +13,31 @@ import torch_render
 from multiview_renderer_mt import Multiview_Renderer
 from generate_training_data import compute_loss_weight
 
-def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
+def run(args,name,setup,output_queue,seed):
     np.random.seed(seed)
+    RENDER_SCALAR = args["RENDER_SCALAR"]
     # torch.random.manual_seed(seed+1)
     # random.seed(seed+2)
-    if noise_config is None:
-        mine = Mine(args,name)
-    else:
-        print("not ready")
-        exit()
-        mine = Mine_Hard(args,name,noise_config)
+    mine = Mine(args,name)
     print("build mine done.")
     #######################################
     # define rendering module           ###
     #######################################
-    
+
     print("[MINE PRO PROCESS] Starting...{}".format(name))
     while True:
-        input_params,input_positions,input_frame,input_rt,input_rotate_angle = mine.generate_training_data()#(batchsize,((1+self.sample_view_num)*(7+3+3+3+3)+3)) torch_renderer
-        batch_size = input_params.size()[0]//2
+        input_params,input_positions,input_rotate_angle,input_frame,rt_1,rt_2 = mine.generate_training_data()
+        batch_size = input_params.size()[0]
         device = input_params.device
    
+        origin_param_dim = input_params.shape[1]
         ####rendering input lumi
+        input_frame = [tmp_axis.unsqueeze(dim=1).repeat(1,2,1).reshape((batch_size*2,3)) for tmp_axis in input_frame]
         rendered_result,end_points = torch_render.draw_rendering_net(
             setup,
-            input_params,
-            input_positions,
-            input_rotate_angle,
+            input_params.unsqueeze(dim=1).repeat(1,2,1).reshape((batch_size*2,origin_param_dim)),
+            input_positions.unsqueeze(dim=1).repeat(1,2,1).reshape((batch_size*2,3)),
+            input_rotate_angle.reshape((batch_size*2,1)),
             "rendering_input_slice",
             global_custom_frame=input_frame,
             use_custom_frame="ntb"
@@ -57,22 +54,22 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
             exit()
 
         rendered_result = rendered_result*RENDER_SCALAR
-        rendered_result = rendered_result.reshape(2,batch_size,setup.get_light_num(),1)
+        rendered_result = rendered_result.reshape(batch_size,2,setup.get_light_num(),1)
 
         training_data_map = {
             "input_lumi":rendered_result,
-            "normal":normals_localview,
-            "position":input_positions,
-            "rt":input_rt
+            "normal":None,
+            "position":None,
+            "rts":[rt_1,rt_2]
         }
-        # print("[MINE PRO PROCESS] putting data...{}".format(self.mine.name))
+        # print("[MINE PRO PROCESS] putting data...{}".format(name))
         output_queue.put(training_data_map)
-        # print("[MINE PRO PROCESS] done...{}".format(self.mine.name))
+        # print("[MINE PRO PROCESS] done...{}".format(name))
         
 
 
 class Mine_Pro():
-    def __init__(self,args,name,output_queue,output_sph,seed,noise_config=None):
+    def __init__(self,args,name,output_queue,seed):
         print("[MINE PRO {}] creating mine...".format(name))
         ##########
         ##parse arguments
@@ -82,13 +79,11 @@ class Mine_Pro():
         self.output_queue = output_queue
         self.setup = self.args["setup_input"]
         self.seed = seed
-        self.noise_config = noise_config
         
         #######################################
         #loading setup configuration        ###
         #######################################
         
-        self.RENDER_SCALAR = self.args["RENDER_SCALAR"]
 
         #######################################
         #loading projection kernels         ###
@@ -101,10 +96,8 @@ class Mine_Pro():
             self.args,
             self.name,
             self.setup,
-            self.RENDER_SCALAR,
             self.output_queue,
-            self.seed,
-            self.noise_config
+            self.seed
         ),daemon=True)
         # self.generator.setDaemon(True)
         self.generator.start()

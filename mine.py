@@ -13,8 +13,7 @@ param_bounds["theta"] = (0.0,math.pi)
 param_bounds["a"] = (0.006,0.503)
 param_bounds["pd"] = (0.0,1.0)
 param_bounds["ps"] = (0.0,10.0)
-param_bounds["box"] = (-100.0,100.0)
-param_bounds["box_global"] = (-100.0,100.0)
+param_bounds["box"] = (-50.0,50.0)
 param_bounds["angle"] = (0.0,2.0*math.pi)
 
 class Mine:
@@ -116,9 +115,7 @@ class Mine:
         '''
         positions = torch.from_numpy(self.generate_batch_positions(batch_size).astype(np.float32)).to(self.rendering_device)#global space
         n_2d = torch.from_numpy(np.random.rand(batch_size,2).astype(np.float32)).to(self.rendering_device)
-
-        available_rt_num = self.R_matrixs.shape[0]
-        chosen_rt_id = np.random.rand(batch_size,available_rt_num).argsort(axis=1)[:,:2]#(batch_size,2)
+        rotate_theta = torch.from_numpy(np.random.uniform(0.0,math.pi,(batch_size,2)).astype(np.float32)).to(self.rendering_device)#(batch_size,2) CAUTION! rotate obeject with axis, if apply to camera, it should be inversed!
 
         ##################################################################
         ###adjust position here to ensure at least two views are visible
@@ -126,19 +123,14 @@ class Mine:
         while True:
             n2d = n_2d
 
-            tmp_R_matrixs = self.R_matrixs[chosen_rt_id.reshape(-1)].reshape((batch_size,2,3,3))
-            tmp_T_vecs = self.T_vecs[chosen_rt_id.reshape((-1))].reshape((batch_size,2,3,1))
-
             normal = torch_render.back_full_octa_map(n2d)#(batch,3) normal global frame
-            normal = normal.reshape((batch_size,1,3,1)).repeat(1,2,1,1)#(batch_size,2,3,1)
-            tmp_normal = torch.matmul(tmp_R_matrixs,normal).reshape(batch_size*2,3)#(batch_size*2,3) local frame
+            tmp_normal = normal.reshape((batch_size,1,3,1)).repeat(1,2,1,1).reshape(batch_size*2,3)#(batch_size*2,3)
+            
+            tmp_position = positions.reshape(batch_size,1,3,1).repeat(1,2,1,1).reshape(batch_size*2,3)#(batch_size*2,3)
 
-            tmp_position = positions.reshape(batch_size,1,3,1).repeat(1,2,1,1)
-            tmp_position = (torch.matmul(tmp_R_matrixs,tmp_position)+tmp_T_vecs).reshape(batch_size*2,3)
+            tmp_rotate_theta = rotate_theta.reshape(batch_size*2,1)#(batch_size*2,1)
 
-            tmp_rotate_theta = torch.zeros(batch_size*2,1,dtype=torch.float32,device=self.rendering_device)
-
-            wo_dot_n = torch_render.compute_wo_dot_n(self.setup_input,tmp_position,tmp_rotate_theta,tmp_normal,self.setup_input.get_cam_pos_torch(self.rendering_device))#(remain*sampleviewnum,1)
+            wo_dot_n = torch_render.compute_wo_dot_n(self.setup_input,tmp_position,tmp_rotate_theta,tmp_normal,self.setup_input.get_cam_pos_torch(self.rendering_device))#(batch_size*2,1)
             
             wo_dot_n = wo_dot_n.reshape(self.batch_size,2)
             tmp_visible_flag = wo_dot_n > 0.0
@@ -150,11 +142,14 @@ class Mine:
 
             new_positions = torch.from_numpy(self.generate_batch_positions(invalid_num)).to(self.rendering_device)
             new_n2d = torch.from_numpy(np.random.rand(invalid_num,2).astype(np.float32)).to(self.rendering_device)
-            new_chosen_rt_id = np.random.rand(invalid_num,available_rt_num).argsort(axis=1)[:,:2]
+            new_rotate_theta = torch.from_numpy(np.random.uniform(0.0,math.pi,(invalid_num,2)).astype(np.float32)).to(self.rendering_device)
             positions[invalid_idxes] = new_positions
             n_2d[invalid_idxes] = new_n2d
-            chosen_rt_id[invalid_idxes.cpu().numpy()] = new_chosen_rt_id
+            rotate_theta[invalid_idxes] = new_rotate_theta
         
+        #########################################
+
+
         n_global = torch_render.back_full_octa_map(n_2d)#(batch,3) normal global
         theta = torch.from_numpy(np.random.rand(batch_size,1).astype(np.float32)*(param_bounds["theta"][1]-param_bounds["theta"][0])+param_bounds["theta"][0]).to(self.rendering_device)
         t_global,_ = torch_render.build_frame_f_z(n_global,theta,with_theta=True)
@@ -162,29 +157,14 @@ class Mine:
 
         frame_global = [n_global,t_global,b_global]#(#(n,t,b) n is (batchsize,3))
 
-        tmp_R_matrixs = self.R_matrixs[chosen_rt_id.reshape(-1)].reshape((batch_size,2,3,3))
-        tmp_T_vecs = self.T_vecs[chosen_rt_id.reshape((-1))].reshape((batch_size,2,3,1))
-        R_matrix_1 = tmp_R_matrixs[:,0]
-        T_vec_1 = tmp_T_vecs[:,0]
-        R_matrix_2 = tmp_R_matrixs[:,1]
-        T_vec_2 = tmp_T_vecs[:,1]
+        rotated_R_matrix,rotated_T_vec = self.setup_input.get_rts(-rotate_theta.reshape((self.batch_size*2,1)),self.rendering_device)
 
-        positions_1 = (torch.matmul(R_matrix_1,positions.reshape(batch_size,3,1))+T_vec_1).reshape(batch_size,3)
-        positions_2 = (torch.matmul(R_matrix_2,positions.reshape(batch_size,3,1))+T_vec_2).reshape(batch_size,3)
+        rotated_R_matrix = rotated_R_matrix.reshape((self.batch_size,2,3,3))
+        R_matrix_1,R_matrix_2 = rotated_R_matrix[:,0],rotated_R_matrix[:,1]
+        rotated_T_vec = rotated_T_vec.reshape((self.batch_size,2,3,1))
+        T_vec_1,T_vec_2 = rotated_T_vec[:,0],rotated_T_vec[:,1]
 
-        frame_1 = [
-            torch.matmul(R_matrix_1,n_global.reshape(batch_size,3,1)).reshape(batch_size,3),
-            torch.matmul(R_matrix_1,t_global.reshape(batch_size,3,1)).reshape(batch_size,3),
-            torch.matmul(R_matrix_1,b_global.reshape(batch_size,3,1)).reshape(batch_size,3),
-        ]
-
-        frame_2 = [
-            torch.matmul(R_matrix_2,n_global.reshape(batch_size,3,1)).reshape(batch_size,3),
-            torch.matmul(R_matrix_2,t_global.reshape(batch_size,3,1)).reshape(batch_size,3),
-            torch.matmul(R_matrix_2,b_global.reshape(batch_size,3,1)).reshape(batch_size,3),
-        ]
-
-        return frame_global,positions,frame_1,positions_1,frame_2,positions_2,R_matrix_1,R_matrix_2,T_vec_1,T_vec_2
+        return frame_global,positions,R_matrix_1,R_matrix_2,T_vec_1,T_vec_2,rotate_theta
 
 
     def generate_training_data(self,test_tangent_flag = False):
@@ -196,7 +176,7 @@ class Mine:
 
         tmp_params[:,6:8] = self.__rejection_sampling_axay(test_tangent_flag)
         
-        frame_global,positions_global,frame_1,positions_1,frame_2,positions_2,R_matrix_1,R_matrix_2,t_vec_1,t_vec_2 = self.generate_batch_frame(self.batch_size)
+        frame_global,positions_global,R_matrix_1,R_matrix_2,t_vec_1,t_vec_2,rotate_theta = self.generate_batch_frame(self.batch_size)
      
         rt_1 = torch.cat((
                 R_matrix_1.reshape((-1,3*3)),
@@ -212,26 +192,12 @@ class Mine:
 
         tmp_params = tmp_params[:,3:3+7]
 
-        input_params = torch.from_numpy(tmp_params).to(self.rendering_device)
+        input_params = torch.from_numpy(tmp_params).to(self.rendering_device)#(batchsize,param_dim)
+        input_positions = positions_global#(batchsize,3)
+        input_rotate_angle = rotate_theta.to(self.rendering_device)#(batchsize,2)
+        input_frame = frame_global#[(batchsize,3),(batchsize,3),(batchsize,3)]
 
-        input_positions_1 = positions_1#torch.matmul(R_matrix_1_inv,torch.unsqueeze(positions_1,dim=2)-t_vec_1).reshape((-1,3))
-        input_positions_2 = positions_2#torch.matmul(R_matrix_2_inv,torch.unsqueeze(positions_2,dim=2)-t_vec_2).reshape((-1,3))
-
-        input_frame_1 = frame_1
-        input_frame_2 = frame_2
-        
-        input_params = torch.cat((input_params,input_params),dim=0)#(2*batchsize,param_dim)
-        input_positions = torch.cat((input_positions_1,input_positions_2),dim=0)#(2*batchsize,3)
-        input_rt = torch.cat((rt_1,rt_2),dim=0)#(2*batchsize,12)
-
-        input_frame = []
-        for which_axis in range(3):
-            tmp_axis = torch.cat((input_frame_1[which_axis],input_frame_2[which_axis]),dim=0)#(2*batchsize,1)
-            input_frame.append(tmp_axis)
-
-        input_rotate_angle = torch.zeros(2*self.batch_size,1,dtype=torch.float32,device=self.rendering_device)
-
-        return input_params,input_positions,input_frame,input_rt,input_rotate_angle
+        return input_params,input_positions,input_rotate_angle,input_frame,rt_1,rt_2
 
     def generate_validating_data(self,test_tangent_flag):
         return self.generate_training_data(test_tangent_flag)

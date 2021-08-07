@@ -126,35 +126,26 @@ if __name__ == "__main__":
     ##########################################
     ### data loader
     ##########################################
-    # train_Semaphore = Semaphore(100)
-    # train_queue_local = Queue(10)
     train_queue_global = Queue(10)
-    # val_Semaphore = Semaphore(50)
     val_queue = Queue(3)
-    # val_queue_mine_v = Queue(3)
-    # val_queue_mine_h = Queue(3)
-    # val_queue_mine_a = Queue(3)
-    train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,None,args.train_mine_seed)
-    train_mine_global.start()
+    # train_mine_global = Mine_Pro(train_configs,"train",train_queue_global,args.train_mine_seed)
+    # train_mine_global.start()
     # val_mine = Mine_Pro(train_configs,"val",val_queue,None,args.val_mine_seed,None)
     # val_mine.start()
-    print("test bar")
-    exit()
 
     ##########################################
     ### net and optimizer
     ##########################################
     training_net = DIFT_TRAIN_NET(train_configs)
     training_net.to(train_configs["training_device"])
-
-    if train_configs["training_mode"] == "finetune":
-        training_net.load_pretrained_models(args.pretrained_model_pan_h,args.pretrained_model_pan_v)
-
+   
     lr = 1e-4# if train_configs["training_mode"] == "pretrain" else 1e-5
     optimizer = optim.Adam(training_net.parameters(), lr=lr,weight_decay=1e-6)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50000, gamma=0.9)
-
+    
+    print("test bar")
+    exit()
     ##########################################
     ### define others
     ##########################################
