@@ -20,11 +20,10 @@ The official implementation of the paper [Learning Efficient Photometric Feature
 2. run train_vertical.sh to train Intensity-insensitive Branch
 3. run train_combine.sh to load the pretrained model and jointly train the network
 
-## Light stage Data
+## Testing
+### Light stage Data
 
-
-## [DiLiGenT-MV](https://sites.google.com/site/photometricstereodata/mv)
-
+### [DiLiGenT-MV](https://sites.google.com/site/photometricstereodata/mv)
 
 License
 ---
