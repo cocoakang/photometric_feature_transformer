@@ -74,13 +74,13 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=2)
+    parser.add_argument("--rendering_gpu",type=int,default=2)
+    parser.add_argument("--checker_gpu",type=int,default=2)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
-    parser.add_argument("--pretrained_model_pan_h",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/model_trained/search_model_material/learn_l2_ml7_mg0_dla0_dlna9_dg0_h/models/model_state_90000.pkl")
-    parser.add_argument("--pretrained_model_pan_v",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/model_trained/search_model_geometry/learn_l2_ml0_mg3_dla0_dlna0_dg7_v2/models/model_state_90000.pkl")
+    parser.add_argument("--pretrained_model_pan_h",type=str,default="runs/learn_l2_ml7_mg0_dla0_dlna9_dg0/models/model_state_90000.pkl")
+    parser.add_argument("--pretrained_model_pan_v",type=str,default="runs/learn_l2_ml0_mg3_dla0_dlna0_dg7/models/model_state_90000.pkl")
     parser.add_argument("--start_seed",type=int,default=84057)
     parser.add_argument("--torch_manual_seed",type=int,default=1827397)
     parser.add_argument("--torch_cuda_manual_seed_all",type=int,default=1827397)
@@ -295,20 +295,21 @@ if __name__ == "__main__":
         )
         quality_checkers.append(checker_uniform_mirror_ball)
 
-    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-    #     train_configs,
-    #     log_dir,
-    #     "../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-    #     "uniform_mirror_ball_a",
-    #     torch.device("cuda:{}".format(args.checker_gpu)),
-    #     axay=(0.05,0.05),
-    #     diff_albedo=0.5,
-    #     spec_albedo=3.0,
-    #     batch_size=500,
-    #     test_view_num=1,
-    #     check_type="a"
-    # )
-    # quality_checkers.append(checker_uniform_mirror_ball)
+    if not args.search_model:
+        checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+            train_configs,
+            log_dir,
+            "../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+            "uniform_mirror_ball_a",
+            torch.device("cuda:{}".format(args.checker_gpu)),
+            axay=(0.05,0.05),
+            diff_albedo=0.5,
+            spec_albedo=3.0,
+            batch_size=500,
+            test_view_num=1,
+            check_type="a"
+        )
+        quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
     #     train_configs,
