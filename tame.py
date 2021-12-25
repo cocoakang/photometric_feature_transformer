@@ -74,9 +74,9 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=0)
-    parser.add_argument("--rendering_gpu",type=int,default=0)
-    parser.add_argument("--checker_gpu",type=int,default=0)
+    parser.add_argument("--training_gpu",type=int,default=1)
+    parser.add_argument("--rendering_gpu",type=int,default=1)
+    parser.add_argument("--checker_gpu",type=int,default=1)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="/home/cocoa_kang/training_tasks/current_work/CVPR21_DIFT/model_trained/search_model_material/learn_l2_ml7_mg0_dla0_dlna9_dg0_h/models/model_state_90000.pkl")
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}_v".format(
+        writer = SummaryWriter(log_dir="runs/learn_l2_ml{}_mg{}_dla{}_dlna{}_dg{}".format(
             partition["local"],partition["global"],0,
             dift_code_config["local_noalbedo"][0],dift_code_config["global"][0])
         )
@@ -258,7 +258,7 @@ if __name__ == "__main__":
         for parameter in training_net.parameters():
             pf.write("{}\n".format(parameter.shape))
     with open(log_dir_model+"seeds.txt","w") as pf:
-        pf.write("{} {} {} {} {}\n".format(args.start_seed,args.torch_manual_seed,args.train_mine_seed,args.start_seed,args.val_mine_seed))
+        pf.write("--start_seed {} --torch_manual_seed {} --train_mine_seed {} --val_mine_seed {}\n".format(args.start_seed,args.torch_manual_seed,args.train_mine_seed,args.val_mine_seed))
         pf.write("m_len:{} code_len:{}\n".format(args.m_len,args.code_len))
     ###quality checker
     quality_checkers = []
@@ -267,7 +267,7 @@ if __name__ == "__main__":
         checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
             train_configs,
             log_dir,
-            "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+            "../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
             "uniform_mirror_ball_gh",
             torch.device("cuda:{}".format(args.checker_gpu)),
             axay=(0.05,0.05),
@@ -283,7 +283,7 @@ if __name__ == "__main__":
         checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
             train_configs,
             log_dir,
-            "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+            "../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
             "uniform_mirror_ball_gv",
             torch.device("cuda:{}".format(args.checker_gpu)),
             axay=(0.05,0.05),
@@ -295,20 +295,20 @@ if __name__ == "__main__":
         )
         quality_checkers.append(checker_uniform_mirror_ball)
 
-    checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
-        train_configs,
-        log_dir,
-        "../../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
-        "uniform_mirror_ball_a",
-        torch.device("cuda:{}".format(args.checker_gpu)),
-        axay=(0.05,0.05),
-        diff_albedo=0.5,
-        spec_albedo=3.0,
-        batch_size=500,
-        test_view_num=1,
-        check_type="a"
-    )
-    quality_checkers.append(checker_uniform_mirror_ball)
+    # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
+    #     train_configs,
+    #     log_dir,
+    #     "../training_data/feature_pattern_models/uniform_mirror_ball/metadata/",
+    #     "uniform_mirror_ball_a",
+    #     torch.device("cuda:{}".format(args.checker_gpu)),
+    #     axay=(0.05,0.05),
+    #     diff_albedo=0.5,
+    #     spec_albedo=3.0,
+    #     batch_size=500,
+    #     test_view_num=1,
+    #     check_type="a"
+    # )
+    # quality_checkers.append(checker_uniform_mirror_ball)
 
     # checker_uniform_mirror_ball = DIFT_QUALITY_CHECKER(
     #     train_configs,
