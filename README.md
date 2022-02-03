@@ -7,12 +7,15 @@ The official implementation of the paper [Learning Efficient Photometric Feature
 ## Preparation
 
 **torch_renderer**
+
 Please clone this [repo](https://github.com/cocoakang/torch_renderer). As specified in tame.py(line 14), the repo should be in the same folder of training codes. The related calibration file can be found [here](https://drive.google.com/file/d/1TdN1woBJuuGFB4Ylai8pasNnNzG2NQES/view?usp=sharing).
 
 **training data**
+
 Download the pregenerated training data from [here](https://drive.google.com/drive/folders/19xyME8WgNMj6vIVtqK5hqBfhMsx5aUV9?usp=sharing). Extract the data to the folder specified in train_horizontal.sh. In tame.py, the training program will visualize feature space every 5000 steps, the related data(required by tame.py in line 270) can be found [here](https://drive.google.com/file/d/1JrucBvAYFcw_iwNjTF_HmYCO4c_o8ZsP/view?usp=sharing).
 
 **multi channel COLMAP**
+
 Please refer to this [repo](https://github.com/cocoakang/colmap_multichannel) to install the modified COLMAP for testing.
 
 ## Training
