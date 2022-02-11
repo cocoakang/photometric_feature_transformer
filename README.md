@@ -6,7 +6,7 @@ Use generate_diligent_rendering_config.py to generate the configurations files i
 One can use the script <em>val_files/inference_dift/prepare_diligent_data.py</em> to generate input data for this project.
 
 ## Transfer input to feature vectors
-With trained models, one can transfer the prepared data to feature vector. Two demo bash scripts are also provided to load our pretrained models: val_files/inference_dift/infer_dift_codes_bear4.sh and val_files/inference_dift/infer_dift_codes_bear_full.sh. The former one is to show our model can still produce promising result even the number of input measurements is only 4. The other one is to show general results. We provided several model-snaps of different training iterations. The featue space and sensitivity to infereflection are different.
+With trained models, one can transfer the prepared data to feature vector. Two demo bash scripts are also provided to load our pretrained models: val_files/inference_dift/infer_dift_codes_bear4.sh and val_files/inference_dift/infer_dift_codes_bear_full.sh. The first one is to show our model can still produce promising result even the number of input measurements is only 4. The other one is to show general results. We provided several model-snaps of different training iterations. The featue space and sensitivity to infereflection are different.
 
 ## COLMAP reconstruction
 To reconstruct point clouds with COLMAP, please copy the folder named undistort_feature_dift_bear to DiLiGenT-mv/mvpmsData/bearPNG/. Then use udt.sh to undistort input images, dense.sh to run patch_match_stereo and fuse.sh to fuse depth map and normal map to point clouds.
