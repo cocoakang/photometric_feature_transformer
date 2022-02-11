@@ -29,6 +29,7 @@ Please refer to this [repo](https://github.com/cocoakang/colmap_multichannel) to
 to be released.
 
 ### [DiLiGenT-MV](https://sites.google.com/site/photometricstereodata/mv)
+Please checkout the brach to diligent-mv and follow the instruction in README.md.
 
 License
 ---
