@@ -22,6 +22,8 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
     if noise_config is None:
         mine = Mine(args,name)
     else:
+        print("not ready")
+        exit()
         mine = Mine_Hard(args,name,noise_config)
     print("build mine done.")
     #######################################
@@ -30,80 +32,38 @@ def run(args,name,setup,RENDER_SCALAR,output_queue,seed,noise_config):
     
     print("[MINE PRO PROCESS] Starting...{}".format(name))
     while True:
-        # print("[MINE PRO PROCESS] get data...{}".format(self.mine.name))
-        param,position,rotate_angles = mine.generate_training_data()#(batchsize,((1+self.sample_view_num)*(7+3+3+3+3)+3)) torch_renderer
-        # print("[MINE PRO PROCESS] get data done...{}".format(self.mine.name))
-        batch_size = param.size()[0]
-        device = param.device
+        input_params,input_positions,input_frame,input_rt,input_rotate_angle = mine.generate_training_data()#(batchsize,((1+self.sample_view_num)*(7+3+3+3+3)+3)) torch_renderer
+        batch_size = input_params.size()[0]//2
+        device = input_params.device
    
-        ### build frame
-        n2d = param[:,:2]#(batch_size,2)
-        theta = param[:,[2]]#(batch_size,1)
-
-        # view_dir = args["setup_input"].get_cam_pos_torch(position.device) - position #shape=[batch,3]
-        # view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
-        # frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
-        # frame_n = view_dir#[batch,3]
-
-        # n_local = torch_render.back_hemi_octa_map(n2d)#[batch,3]
-        # t_local,_ = torch_render.build_frame_f_z(n_local,theta,with_theta=True)
-        # n = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
-        # t = t_local[:,[0]]*frame_t+t_local[:,[1]]*frame_b+t_local[:,[2]]*frame_n#[batch,3]
-        # b = torch.cross(n,t)#[batch,3]
-        
-        normal = torch_render.back_full_octa_map(n2d)#(batch_size,3)
-        tangent,binormal =torch_render.build_frame_f_z(normal,theta)
-        global_frame = [normal,tangent,binormal]
-        # global_frame=[n,t,b]
-
-        ###double param 
-        param_2 = torch.unsqueeze(param,dim=1).repeat(1,2,1).reshape(batch_size*2,7)
-        position_2 = torch.unsqueeze(position,dim=1).repeat(1,2,1).reshape(batch_size*2,3)
-        for i in range(3):
-            global_frame[i] = torch.unsqueeze(global_frame[i],dim=1).repeat(1,2,1).reshape(batch_size*2,3)
-        rotate_angles = rotate_angles.reshape(batch_size*2,1)
-        ### rendering input lumi
+        ####rendering input lumi
         rendered_result,end_points = torch_render.draw_rendering_net(
             setup,
-            param_2,
-            position_2,
-            rotate_angles,
+            input_params,
+            input_positions,
+            input_rotate_angle,
             "rendering_input_slice",
-            global_custom_frame=global_frame,
+            global_custom_frame=input_frame,
             use_custom_frame="ntb"
         )
         
-        n_dot_wo = end_points["n_dot_view_dir"]#(batch*2,1)
-        normals_localview = end_points["n"]#(batch*2,3)
-        normals_localview = torch.reshape(normals_localview,(batch_size,2,3)).permute(1,0,2).reshape(2*batch_size,3)
-        normals_globalview = torch.unsqueeze(normal,dim=0).repeat(2,1,1).reshape(2*batch_size,3)#(2*batch,3)
-        visibility = torch.where(~(n_dot_wo.reshape(batch_size,2) > 0.0).all(dim=1))[0]
+        n_dot_wo = end_points["n_dot_view_dir"]#(2*batch,1)
+        normals_localview = end_points["n"]#(2*batch,3)
+        # normals_localview = torch.reshape(normals_localview,(batch_size,2,3)).permute(1,0,2).reshape(2*batch_size,3)
+        visibility = (n_dot_wo.reshape(-1) > 0.0).all()
         # print(visibility)
-        if len(visibility) > 0:
+        if not visibility:
+            print(n_dot_wo)
             print("error occured!")
             exit()
 
         rendered_result = rendered_result*RENDER_SCALAR
-        rendered_result = rendered_result.reshape(batch_size,2,setup.get_light_num(),1)
-        rendered_result = rendered_result.permute(1,0,2,3)
-
-        # print("[MINE PRO PROCESS] contructing...{}".format(self.mine.name))
-        # print("param {}:".format(name),param[-3:])
-        # print("position {}:".format(name),position[-3:])
-        # exit()
-
-        rotate_angles = rotate_angles.reshape(batch_size,2,1).permute(1,0,2).reshape(2*batch_size,1)
-        position_2 = position_2.reshape(batch_size,2,3).permute(1,0,2).reshape(2*batch_size,3)
-        # position_2 = end_points["position"].reshape(batch_size,2,3)
-        # position_2 = position_2.permute(1,0,2).reshape(2*batch_size,3)
-
-        param_2 = param_2.reshape(batch_size,2,7).permute(1,0,2).reshape(2*batch_size,7)
+        rendered_result = rendered_result.reshape(2,batch_size,setup.get_light_num(),1)
 
         training_data_map = {
             "input_lumi":rendered_result,
-            "position":position,
             "normal":normals_localview,
-            "rotate_theta":rotate_angles
+            "rt":input_rt
         }
         # print("[MINE PRO PROCESS] putting data...{}".format(self.mine.name))
         output_queue.put(training_data_map)

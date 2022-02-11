@@ -13,7 +13,8 @@ param_bounds["theta"] = (0.0,math.pi)
 param_bounds["a"] = (0.006,0.503)
 param_bounds["pd"] = (0.0,1.0)
 param_bounds["ps"] = (0.0,10.0)
-param_bounds["box"] = (-100.0,100.0)
+param_bounds["box"] = (-600.0,600.0)
+param_bounds["box_global"] = (-600.0,600.0)
 param_bounds["angle"] = (0.0,2.0*math.pi)
 
 class Mine:
@@ -108,8 +109,68 @@ class Mine:
         tmp_color = np.random.rand(self.batch_size,3)*(max_rho-min_rho) + min_rho
         return tmp_color.astype(np.float32)
 
-    def generate_batch_positions(self,batch_size):
-        return np.random.uniform(param_bounds["box"][0],param_bounds["box"][1],[batch_size,3]).astype(np.float32)
+    def generate_batch_positions_incf(self,batch_size,bounding="box"):
+        tmp_pos = np.random.uniform(param_bounds[bounding][0],param_bounds[bounding][1],[batch_size,3]).astype(np.float32)
+        tmp_pos[:,2] = tmp_pos[:,2] + 1500
+        return tmp_pos
+    
+    def generate_batch_positions(self,batch_size,bounding="box"):
+        return np.random.uniform(param_bounds[bounding][0],param_bounds[bounding][1],[batch_size,3]).astype(np.float32)
+
+    def generate_batch_visible_frame_incf(self,position):
+        bath_size = position.shape[0]
+
+        position = torch.from_numpy(position).to(self.rendering_device)
+        n_2d = torch.from_numpy(np.random.rand(bath_size,2).astype(np.float32)*(param_bounds["n"][1]-param_bounds["n"][0])+param_bounds["n"][0]).to(self.rendering_device)
+        theta = torch.from_numpy(np.random.rand(bath_size,1).astype(np.float32)*(param_bounds["theta"][1]-param_bounds["theta"][0])+param_bounds["theta"][0]).to(self.rendering_device)
+
+        view_dir = torch.zeros_like(self.setup_input.get_cam_pos_torch(self.rendering_device)) - position #shape=[batch,3]
+        view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
+        #build local frame
+        frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
+        frame_n = view_dir#[batch,3]
+
+        n_local = torch_render.back_hemi_octa_map(n_2d)#[batch,3]
+        t_local,_ = torch_render.build_frame_f_z(n_local,theta,with_theta=True)
+        n = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
+        t = t_local[:,[0]]*frame_t+t_local[:,[1]]*frame_b+t_local[:,[2]]*frame_n#[batch,3]
+        b = torch.cross(n,t)#[batch,3]
+
+        return [n,t,b]
+
+    def generate_batch_frame(self,batch_size,positions_1,positions_2):
+        frame_1 = self.generate_batch_visible_frame_incf(positions_1)#(n,t,b) n is (batchsize,3)
+        frame_2 = self.generate_batch_visible_frame_incf(positions_2)#(n,t,b) n is (batchsize,3)
+
+        n_2d = torch.from_numpy(np.random.rand(batch_size,2).astype(np.float32)).to(self.rendering_device)
+        theta = torch.from_numpy(np.random.rand(batch_size,1).astype(np.float32)*(param_bounds["theta"][1]-param_bounds["theta"][0])+param_bounds["theta"][0]).to(self.rendering_device)
+        n_global = torch_render.back_full_octa_map(n_2d)#[batch,3]
+        t_global,_ = torch_render.build_frame_f_z(n_global,theta,with_theta=True)
+        b_global = torch.cross(n_global,t_global)
+
+        frame_global = [n_global,t_global,b_global]#(#(n,t,b) n is (batchsize,3))
+
+        return frame_1,frame_2,frame_global
+
+    def solve_rt(self,position_local,positions_global,frame_local,frame_global):
+        frame_local = torch.stack(frame_local,dim=2)#(batchsize,3,3axis n t b)
+        frame_global = torch.stack(frame_global,dim=2)#(batchsize,3,3axis n t b)
+        R_matrix = torch.matmul(frame_local,torch.inverse(frame_global))#frame_local(3,1) = R_matrix frame_global(3,1) 
+        t_vec = torch.unsqueeze(position_local,dim=2) - torch.matmul(R_matrix,torch.unsqueeze(positions_global,dim=2))
+
+        # rt = torch.cat((
+        #         R_matrix.reshape((-1,3*3)),
+        #         t_vec.reshape((-1,3))
+        #     ),dim=1
+        # )#(batchsize,12)
+
+        return R_matrix,t_vec
+
+    def build_2_rts(self,positions_1,positions_2,positions_global,frame_1,frame_2,frame_global):
+        R_matrix_1,t_vec_1 = self.solve_rt(positions_1,positions_global,frame_1,frame_global)
+        R_matrix_2,t_vec_2 = self.solve_rt(positions_2,positions_global,frame_2,frame_global)
+        #3*3+3
+        return R_matrix_1,t_vec_1,R_matrix_2,t_vec_2
 
     def generate_training_data(self,test_tangent_flag = False):
         tmp_params = self.buffer_params[self.current_ptr:self.current_ptr+self.batch_size]
@@ -120,67 +181,68 @@ class Mine:
 
         tmp_params[:,6:8] = self.__rejection_sampling_axay(test_tangent_flag)
         # tmp_params[:,7] = tmp_params[:,6]
-        new_positions = self.generate_batch_positions(self.batch_size)
+        positions_1 = self.generate_batch_positions_incf(self.batch_size,"box")#camera frame
+        positions_2 = self.generate_batch_positions_incf(self.batch_size,"box")#camera frame
+        positions_global = self.generate_batch_positions(self.batch_size,"box_global")
+        frame_1,frame_2,frame_global = self.generate_batch_frame(self.batch_size,positions_1,positions_2)
+        #frame_1 frame_2 are in camera frame
+        
+
+        positions_1 = torch.from_numpy(positions_1).to(self.rendering_device)
+        positions_2 = torch.from_numpy(positions_2).to(self.rendering_device)
+        positions_global = torch.from_numpy(positions_global).to(self.rendering_device)
+
+
+        R_matrix_1,t_vec_1,R_matrix_2,t_vec_2 = self.build_2_rts(positions_1,positions_2,positions_global,frame_1,frame_2,frame_global)
+        R_matrix_1_inv = torch.inverse(R_matrix_1)
+        R_matrix_2_inv = torch.inverse(R_matrix_2)
+
+        rt_1 = torch.cat((
+                R_matrix_1.reshape((-1,3*3)),
+                t_vec_1.reshape((-1,3))
+            ),dim=1
+        )#(batchsize,12))
+
+        rt_2 = torch.cat((
+                R_matrix_2.reshape((-1,3*3)),
+                t_vec_2.reshape((-1,3))
+            ),dim=1
+        )#(batchsize,12)
+
         tmp_params = tmp_params[:,3:3+7]
 
         input_params = torch.from_numpy(tmp_params).to(self.rendering_device)
-        input_positions = torch.from_numpy(new_positions[:,:3]).to(self.rendering_device)
 
-        chossed_roate_angles = np.random.uniform(0.0,math.pi*2.0,[self.batch_size,2]).astype(np.float32)
-        chossed_roate_angles = torch.from_numpy(chossed_roate_angles).to(self.rendering_device)
-        ##################################################################
-        ###adjust position here to ensure at least two views are visible
-        ##################################################################
-        while True:
-            n2d = input_params[:,:2]#(batch_size,2)
-            # theta = tmp_param[:,[2]]#(batch_size,1)
-            # view_dir = self.setup_input.get_cam_pos_torch(self.rendering_device) - input_positions #shape=[batch,3]
-            # view_dir = torch.nn.functional.normalize(view_dir,dim=1)#shape=[batch,3]
+        input_positions_1 = positions_1#torch.matmul(R_matrix_1_inv,torch.unsqueeze(positions_1,dim=2)-t_vec_1).reshape((-1,3))
+        input_positions_2 = positions_2#torch.matmul(R_matrix_2_inv,torch.unsqueeze(positions_2,dim=2)-t_vec_2).reshape((-1,3))
 
-            # frame_t,frame_b = torch_render.build_frame_f_z(view_dir,None,with_theta=False)#[batch,3]
-            # frame_n = view_dir#[batch,3]
+        input_frame_1 = frame_1
+        # input_frame_1 = []
+        # for which_axis in range(3):
+        #     tmp_axis = frame_1[which_axis]
+        #     tmp_axis = torch.matmul(R_matrix_1_inv,torch.unsqueeze(tmp_axis,dim=2)).reshape((-1,3))
+        #     input_frame_1.append(tmp_axis)
 
-            # n_local = torch_render.back_hemi_octa_map(n2d)#[batch,3]
-            # normal = n_local[:,[0]]*frame_t+n_local[:,[1]]*frame_b+n_local[:,[2]]*frame_n#[batch,3]
-            normal = torch_render.back_full_octa_map(n2d)#(batch,3)
 
-            tmp_normal = torch.unsqueeze(normal,dim=1).repeat(1,2,1).reshape(self.batch_size*2,3)
-            tmp_position = torch.unsqueeze(input_positions,dim=1).repeat(1,2,1).reshape(self.batch_size*2,3)
-            tmp_rotate_theta = chossed_roate_angles.clone().reshape(self.batch_size*2,1)
-            wo_dot_n = torch_render.compute_wo_dot_n(self.setup_input,tmp_position,tmp_rotate_theta,tmp_normal,self.setup_input.get_cam_pos_torch(self.rendering_device))#(remain*sampleviewnum,1)
-            wo_dot_n = wo_dot_n.reshape(self.batch_size,2)
-            tmp_visible_flag = wo_dot_n > 0.0
-            visible_num = torch.sum(torch.where(tmp_visible_flag,torch.ones_like(wo_dot_n),torch.zeros_like(wo_dot_n)),dim=1)
-            invalid_idxes = torch.where(visible_num < 2)[0]
-            invalid_num = invalid_idxes.size()[0]
-            if invalid_num == 0:
-                break
-            new_positions = torch.from_numpy(self.generate_batch_positions(invalid_num)).to(self.rendering_device)
-            new_n2d = torch.from_numpy(np.random.uniform(param_bounds["n"][0],param_bounds["n"][1],[invalid_num,2]).astype(np.float32)).to(self.rendering_device)
-            input_positions[invalid_idxes] = new_positions
-            input_params[invalid_idxes,:2] = new_n2d
-        ##################################################################
-        ###select two visible view
-        ##################################################################
-        # choosed_idx_x = np.stack([np.array(range(self.batch_size)),np.array(range(self.batch_size))],axis=1).reshape([-1])
-        # mask_matrix = tmp_visible_flag.cpu().numpy()
-        # try:
-        #     choosed_idx = np.stack([np.random.choice(np.where(mask_matrix[i])[0],size=2,replace=False) for i in range(self.batch_size)]).reshape([-1])
-        # except BaseException as e:
-        #     print(e)
-        #     input_params.cpu().numpy().astype(np.float32).tofile("error_param.bin")
-        #     input_positions.cpu().numpy().astype(np.float32).tofile("error_pos.bin")
-        #     exit()
+        input_frame_2 = frame_2
+        # input_frame_2 = []
+        # for which_axis in range(3):
+        #     tmp_axis = frame_2[which_axis]
+        #     tmp_axis = torch.matmul(R_matrix_2_inv,torch.unsqueeze(tmp_axis,dim=2)).reshape((-1,3))
+        #     input_frame_2.append(tmp_axis)
 
-        # chossed_roate_angles = np.reshape(self.sampled_rotate_angles_np[choosed_idx_x,choosed_idx],[self.batch_size,2])
-        # chossed_roate_angles = torch.from_numpy(chossed_roate_angles).to(self.rendering_device)
+        input_params = torch.cat((input_params,input_params),dim=0)#(2*batchsize,param_dim)
+        input_positions = torch.cat((input_positions_1,input_positions_2),dim=0)#(2*batchsize,3)
+        input_rt = torch.cat((rt_1,rt_2),dim=0)#(2*batchsize,12)
 
-        #add brdf training samples
-        # input_positions[self.batch_brdf_num*1:self.batch_brdf_num*2] = input_positions[self.batch_brdf_num*0:self.batch_brdf_num*1]
-        # chossed_roate_angles[self.batch_brdf_num*1:self.batch_brdf_num*2] = chossed_roate_angles[self.batch_brdf_num*0:self.batch_brdf_num*1]
-        # input_params[self.batch_brdf_num*1:self.batch_brdf_num*2,3:7] =  input_params[self.batch_brdf_num*0:self.batch_brdf_num*1,3:7]
+        input_frame = []
+        for which_axis in range(3):
+            tmp_axis = torch.cat((input_frame_1[which_axis],input_frame_2[which_axis]),dim=0)#(2*batchsize,1)
+            input_frame.append(tmp_axis)
 
-        return input_params,input_positions,chossed_roate_angles
+        input_rotate_angle = torch.zeros(2*self.batch_size,1,dtype=torch.float32,device=self.rendering_device)
+
+        return input_params,input_positions,input_frame,input_rt,input_rotate_angle
 
     def generate_validating_data(self,test_tangent_flag):
         return self.generate_training_data(test_tangent_flag)

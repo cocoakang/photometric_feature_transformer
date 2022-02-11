@@ -125,43 +125,22 @@ class DIFT_TRAIN_NET(nn.Module):
         # end_time = [start]
         # stamp_name=[]
         input_lumis = batch_data["input_lumi"].to(self.training_device)#(2,batchsize,lumi_len,3)
-        global_positions = batch_data["position"].to(self.training_device)#(batchsize,3)
         normal_label = batch_data["normal"].to(self.training_device)#(2*batchsize,3)
-        rotate_theta = batch_data["rotate_theta"].to(self.training_device)#(2*batchsize,1)
+        rt = batch_data["rt"].to(self.training_device)#(2*batchsize,9+3)
         
         ############################################################################################################################
         ## step 2 draw nn net
         ############################################################################################################################
         #1 first we project every lumitexel to measurements
-        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num(),1)
+        input_lumis = input_lumis.reshape(2*self.batch_size,self.setup.get_light_num())
         measurements = input_lumis#self.linear_projection(input_lumis)#(2*batchsize,m_len,1)
         tmp_noise = torch.randn_like(measurements)*0.05+1.
         measurements = measurements*tmp_noise
+        
         #TODO add noise here
-        
-        # measurements_for_albedo = measurements[:,:self.partition["albedo"][0]]
-        # measurements_for_dift = measurements[:,self.partition["albedo"][0]:]
-        #concatenate measurements
-        
-        #2 infer albedo using neural network
-        # albedo_nn_diff,albedo_nn_spec = self.albedo_net(measurements_for_albedo)#(2*batchsize,1),(2*batchsize,1)
-
-        # view_mat_model = torch_render.rotation_axis(-rotate_theta,self.setup.get_rot_axis_torch(measurements.device))#[2*batch,4,4]
-        # view_mat_model_t = torch.transpose(view_mat_model,1,2)#[2*batch,4,4]
-        # view_mat_model_t = view_mat_model_t.reshape(2*self.batch_size,16)
-        # view_mat_for_normal =torch.transpose(torch.inverse(view_mat_model),1,2)
-        # view_mat_for_normal_t = torch.transpose(view_mat_for_normal,1,2)#[2*batch,4,4]
-        # view_mat_for_normal_t = view_mat_for_normal_t.reshape(2*self.batch_size,16)
-
-        cossin = torch.cat(
-            [
-                torch.sin(rotate_theta),
-                torch.cos(rotate_theta)
-            ],dim=1
-        )
-
+    
         # dift_codes_full,origin_codes_map = self.dift_net(measurements,view_mat_model_t,view_mat_for_normal_t,param_2[:,[5]],param_2[:,[6]],True)#(2*batch,diftcodelen)
-        dift_codes_full,origin_codes_map = self.dift_net(measurements,cossin,True)#(2*batch,diftcodelen)
+        dift_codes_full,origin_codes_map = self.dift_net(measurements,rt,True)#(2*batch,diftcodelen)
         dift_codes_full = dift_codes_full.reshape(2,self.batch_size,self.dift_code_len)
         # dift_codes = self.dift_net(measurements,cossin)
         predicted_normal = self.dift_net_normal(measurements)
@@ -201,7 +180,6 @@ class DIFT_TRAIN_NET(nn.Module):
                     "input_lumis":input_lumis.cpu(),
                     "distance_matrix":D.cpu(),
                     "lighting_pattern":self.linear_projection.get_lighting_patterns(self.training_device),
-                    "global_positions":global_positions.cpu(),
                     "normal_label":normal_label.cpu(),
                     "normal_nn":normal_label.cpu()
                 }

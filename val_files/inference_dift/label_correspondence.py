@@ -31,7 +31,7 @@ def OnMouseAction(event,x,y,flags,param):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root", type=str,default="/Users/ross/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/full_on_udt/")
+    parser.add_argument("--data_root", type=str,default="E:/CVPR21_freshmeat/DiLiGenT-MV/mvpmsData/pot2PNG/full_on_udt/")
     parser.add_argument("--view_num",type=int,default=20)
 
     args = parser.parse_args()

@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 import os
 import math
+import scipy.io as scio
 import sys
 TORCH_RENDER_PATH="../../../torch_renderer/"
 sys.path.append(TORCH_RENDER_PATH)
@@ -61,14 +62,21 @@ if __name__ == "__main__":
     sampled_rotate_angles_np = np.linspace(0.0,-math.pi*2.0,num=args.sample_view_num,endpoint=False)
     sampled_rotate_angles_np = np.expand_dims(sampled_rotate_angles_np,axis=0).astype(np.float32)
 
+    calib_mat = scio.loadmat(args.root+"Calib_Results.mat")
+
     for which_view in range(args.rotate_num):
         print("view{}/{}".format(which_view,args.rotate_num-1))
         cur_root = args.root+"view_{:02d}/".format(which_view+1)
         cur_save_root = save_root+"{}/".format(which_view)
         os.makedirs(cur_save_root,exist_ok=True)
-        measurments = np.fromfile(cur_root+"cam00_data_{}_nocc_compacted.bin".format(args.measurement_len),np.float32).reshape([-1,3,args.measurement_len])
-        measurments = measurments.reshape(-1,args.measurement_len)
+        measurments = np.fromfile(cur_root+"cam00_data_96_nocc_compacted.bin".format(args.measurement_len),np.float32).reshape([-1,3,96])
+        measurments = measurments.reshape(-1,96)[:,::96//args.measurement_len]
         measurments = measurments * args.scalar
+
+        R_matrix = calib_mat["Rc_{}".format(which_view+1)].astype(np.float32).reshape((1,-1))
+        T_vec = calib_mat["Tc_{}".format(which_view+1)].astype(np.float32).reshape((1,-1))
+        rt_vec = np.concatenate((R_matrix, T_vec),axis=1)
+        # print(rt_vec)
 
         pf_save = open(cur_save_root+"feature.bin".format(which_view),"wb")
         pf_save_normal = open(cur_save_root+"normal.bin".format(which_view),"wb")
@@ -80,8 +88,7 @@ if __name__ == "__main__":
             if cur_batch_size == 0:
                 break
             tmp_measurements = torch.from_numpy(tmp_measurements).to(inference_device)
-            sampled_rotate_angles = torch.from_numpy(sampled_rotate_angles_np).repeat(cur_batch_size,1).to(inference_device)
-            sampled_rotate_angles = sampled_rotate_angles[:,[which_view]]
+            sampled_rotate_angles = torch.from_numpy(rt_vec).repeat(cur_batch_size,1).to(inference_device)
             with torch.no_grad():
                 dift_codes = nn_model(tmp_measurements,sampled_rotate_angles)
             

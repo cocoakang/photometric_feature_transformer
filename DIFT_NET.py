@@ -7,7 +7,6 @@ import math
 from DIFT_NET_CONCAT import DIFT_NET_CONCAT
 from DIFT_NET_G_DIFF_LOCAL import DIFT_NET_G_DIFF_LOCAL
 from DIFT_NET_G_DIFF_GLOBAL import DIFT_NET_G_DIFF_GLOBAL
-from DIFT_NET_G_SPEC import DIFT_NET_G_SPEC
 
 class DIFT_NET(nn.Module):
     def __init__(self,args):
@@ -33,7 +32,7 @@ class DIFT_NET(nn.Module):
     def forward(self,batch_data,cossin,return_origin_codes=False):
         '''
         batch_data=(batch_size,sample_view_num,m_len,1)
-        cossin = (batch_size,2)
+        cossin = (batch_size,9+3)
         albedo_diff = (batch_size,1)
         albedo_spec = (batch_size,1)
         '''
@@ -41,8 +40,21 @@ class DIFT_NET(nn.Module):
         device = batch_data.device
 
         x_n = batch_data.reshape(batch_size,self.measurements_length)
-    
         # dift_codes_albedo = self.albedo_part(x_n[:,m_ptr:m_ptr+self.partition["local"]])
+
+        r_matrix = cossin[:,:9].reshape(batch_size,3,3)
+        t_vec = cossin[:,-3:].reshape(batch_size,3,1)
+        cam_pos = -torch.matmul(r_matrix.permute(0,2,1),t_vec)
+        cam_pos = cam_pos.reshape(batch_size,3)
+
+        # cossin = torch.cat(
+        #     [
+        #         cossin[:,:9],
+        #         cam_pos
+        #     ],
+        #     dim=1
+        # )
+
 
         code_list = []
         origin_codes_map = {}

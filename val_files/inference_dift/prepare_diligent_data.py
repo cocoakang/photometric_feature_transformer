@@ -5,7 +5,7 @@ import os
 
 if __name__ == '__main__':
     parser  = argparse.ArgumentParser()
-    parser.add_argument("--data_root",default="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/readingPNG/")
+    parser.add_argument("--data_root",default="/home/cocoa_kang/dift_freshmeat/DiLiGenT-MV/mvpmsData/bearPNG/")
     parser.add_argument("--lightnum",type=int,default=12*8)
     parser.add_argument("--view_num",type=int,default=20)
 

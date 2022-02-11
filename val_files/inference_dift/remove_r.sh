@@ -1,0 +1,1 @@
+sed -i 's/\r//g' infer_dift_codes_bear_full.sh

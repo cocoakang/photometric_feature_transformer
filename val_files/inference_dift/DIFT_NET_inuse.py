@@ -27,16 +27,16 @@ class DIFT_NET_inuse(nn.Module):
         }
 
         dift_code_config = {
-            "local_noalbedo":(0,-1.0),
-            "global":(7,-1.0),
-            "cat":(7,-1.0)
+            "local_noalbedo":(64,-1.0),
+            "global":(64,-1.0),
+            "cat":(128,-1.0)
         }
 
         training_configs = {
             "partition": partition,
             "dift_code_config" : dift_code_config,
             "measurements_length" : args.measurement_len,
-            "dift_code_len" : 16,
+            "dift_code_len" : 128,
             "training_mode" : ""
         }
 
@@ -47,7 +47,7 @@ class DIFT_NET_inuse(nn.Module):
         self.dift_net_normal = DIFT_NET_NORMAL(training_configs)
         # self.dift_net_m = DIFT_NET_M(training_configs)
 
-    def forward(self,batch_data,sampled_rotate_angles,get_normal=False):
+    def forward(self,batch_data,rt,get_normal=False):
         '''
         batch_data = (batch_size,m_len,1)
         '''
@@ -67,12 +67,7 @@ class DIFT_NET_inuse(nn.Module):
         if get_normal:
             infered_dift_codes = self.dift_net_normal(batch_data)
         else:
-            cossin = torch.cat(
-                [
-                    torch.sin(sampled_rotate_angles),
-                    torch.cos(sampled_rotate_angles)
-                ],dim=1
-            )
+            cossin = rt
 
             infered_dift_codes = self.dift_net(batch_data,cossin)
         

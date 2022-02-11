@@ -18,7 +18,7 @@ from multiprocessing import Queue
 import math
 import re
 
-MAX_ITR = 300000
+MAX_ITR = 3000000
 VALIDATE_ITR = 5
 CHECK_QUALITY_ITR=5000
 SAVE_MODEL_ITR=10000
@@ -73,18 +73,18 @@ def parse_vh_config(pretrained_model_pan_h,pretrained_model_pan_v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root")
-    parser.add_argument("--training_gpu",type=int,default=1)
-    parser.add_argument("--rendering_gpu",type=int,default=1)
-    parser.add_argument("--checker_gpu",type=int,default=1)
+    parser.add_argument("--training_gpu",type=int,default=3)
+    parser.add_argument("--rendering_gpu",type=int,default=3)
+    parser.add_argument("--checker_gpu",type=int,default=3)
     parser.add_argument("--log_file_name",type=str,default="")
     parser.add_argument("--pretrained_model_pan",type=str,default="")
     parser.add_argument("--pretrained_model_pan_h",type=str,default="")
     parser.add_argument("--pretrained_model_pan_v",type=str,default="")
-    parser.add_argument("--start_seed",type=int,default=84057)
-    parser.add_argument("--torch_manual_seed",type=int,default=1827397)
-    parser.add_argument("--torch_cuda_manual_seed_all",type=int,default=1827397)
-    parser.add_argument("--train_mine_seed",type=int,default=51721)
-    parser.add_argument("--val_mine_seed",type=int,default=992831)
+    parser.add_argument("--start_seed",type=int,default=844357)
+    parser.add_argument("--torch_manual_seed",type=int,default=143271)
+    parser.add_argument("--torch_cuda_manual_seed_all",type=int,default=1317497)
+    parser.add_argument("--train_mine_seed",type=int,default=514213)
+    parser.add_argument("--val_mine_seed",type=int,default=918341)
     parser.add_argument("--search_model",action="store_true")
     parser.add_argument("--m_len",type=int,default=3)
     parser.add_argument("--code_len",type=int,default=5)
@@ -108,10 +108,13 @@ if __name__ == "__main__":
 
     ##about rendering devices
     standard_rendering_parameters = {
-        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_reading/"
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_bear_cs/"
     }
     setup_input = Setup_Config_Freeform(standard_rendering_parameters)
     # setup_input.rot_axis = np.array([0.0,1.0,0.0],np.float32)# TODO read from calibration file
+    standard_rendering_parameters = {
+        "config_dir":TORCH_RENDER_PATH+"wallet_of_torch_renderer/diligent_mv_bear/"
+    }
     setup_input2 = Setup_Config_Freeform(standard_rendering_parameters)
     # setup_input2.rot_axis = np.array([-1.0,0.0,0.0],np.float32)# TODO read from calibration file
 
@@ -150,9 +153,9 @@ if __name__ == "__main__":
         if train_configs["training_mode"] == "pretrain":
             partition["local"] = 0
             partition["global"] = setup_input.get_light_num()
-            dift_code_config["local_noalbedo"] = (9,1.0)
-            dift_code_config["global"] = (7,10.0)
-            dift_code_config["cat"] = (16,10.0)
+            dift_code_config["local_noalbedo"] = (64,1.0)
+            dift_code_config["global"] = (64,10.0)
+            dift_code_config["cat"] = (128,10.0)
         elif train_configs["training_mode"] == "finetune":
             print("not ready")
             exit()
@@ -229,7 +232,7 @@ if __name__ == "__main__":
     ### define others
     ##########################################
     if args.log_file_name == "":
-        writer = SummaryWriter(log_dir="runs/diligent_global_local_reading")
+        writer = SummaryWriter(log_dir="runs/diligent_global_local_bear_12m_unstructured_longer_correct_4")
         # os.makedirs("../log_no_where2/",exist_ok=True)
         # os.system("rm -r ../log_no_where2/*")
         # writer = SummaryWriter(log_dir="../log_no_where2/")
