@@ -1,6 +1,6 @@
 ## Generate torch_render configs
 Use generate_diligent_rendering_config.py to generate the configurations files including light position, light normal etc. One can use the generated configuration files to train the photometric feature transformer for a specific object in DiLiGent-mv dataset. 
-<em>Note the lights and camera positions are different among objects, so one should generate configuration files for each object, instead of using same files.</em>
+<em>Note the lights and camera positions are different among objects, so one should generate configuration files for each object, instead of using the same files.</em>
 
 ## Transfer DiLiGenT-mv data to the input of this project
 One can use the script <em>val_files/inference_dift/prepare_diligent_data.py</em> to generate input data for this project.
