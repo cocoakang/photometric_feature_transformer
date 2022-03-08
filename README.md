@@ -2,8 +2,6 @@
 
 The official implementation of the paper [Learning Efficient Photometric Feature Transform for Multi-view Stereo](https://openaccess.thecvf.com/content/ICCV2021/html/Kang_Learning_Efficient_Photometric_Feature_Transform_for_Multi-View_Stereo_ICCV_2021_paper.html).
 
-***Under construction...***
-
 ## Preparation
 
 **torch_renderer**
