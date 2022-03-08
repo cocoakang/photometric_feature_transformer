@@ -1,7 +1,7 @@
 @echo off
 
-SET DATA_ROOT="D:/CVPR21_freshmeat/11_4_sc1/billiard/"
-SET MODEL_ROOT="D:/CVPR21_models/11_4_sc_m5_g3_md9_gd7/models/"
+SET DATA_ROOT="H:/iccv_data/11_6_linear_cat/"
+SET MODEL_ROOT="H:/iccv_data/trained_model/"
 SET MODEL_FILE_NAME="model_state_270000.pkl"
 
 SET SAMPLE_VIEW_NUM=24

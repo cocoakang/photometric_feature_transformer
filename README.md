@@ -26,7 +26,15 @@ Please refer to this [repo](https://github.com/cocoakang/colmap_multichannel) to
 
 ## Testing
 ### Light stage Data
-to be released.
+Please download the data and trained model from [here](https://www.aliyundrive.com/s/qzu24ZZ84Tf).
+Use val_files/inference_dift/infer_dift_codes.bat to generate feature maps. A folder named feature_maps will be generated in the folder of each objects.
+We provide pre-generated COLMAP dense folder for each objects, named as undistort_feature_dift.
+Please undistort the multi-channel featuremaps and run dense reconstruction with modifed [multi-channel COLMAP](https://github.com/cocoakang/colmap_multichannel).
+
+    colmap image_undistorter --image_path /path/to/feature/map/folder --input_path /path/to/undistort_feature_dif/ --output_path /path/to/undistort_feature_dif/ --input_type BIN
+
+    colmap patch_match_stereo --workspace_path . --PatchMatchStereo.multi_channel 1 --PatchMatchStereo.geom_consistency 1 --PatchMatchStereo.sigma_spatial 15 --PatchMatchStereo.sigma_color 5.0 --PatchMatchStereo.num_samples 20 --PatchMatchStereo.ncc_sigma 1.0
+
 
 ### [DiLiGenT-MV](https://sites.google.com/site/photometricstereodata/mv)
 Please checkout the brach diligent_mv and then follow the instruction in README.md.
