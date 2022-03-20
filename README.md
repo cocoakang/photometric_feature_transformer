@@ -24,7 +24,16 @@ Please refer to this [repo](https://github.com/cocoakang/colmap_multichannel) to
 
 ## Testing
 ### Light stage Data
-Please download the data and trained model from [here](https://www.aliyundrive.com/s/qzu24ZZ84Tf).
+Please download the data and trained model:
+
+
+[fox](https://www.aliyundrive.com/s/A4hxwm9cdNq)
+[cat](https://www.aliyundrive.com/s/9DMy4WjbjNC)
+[chicken](https://www.aliyundrive.com/s/uWb1pEkzN7y)
+[teacup](https://www.aliyundrive.com/s/FGLWgXYq3bj)
+[trained model](https://drive.google.com/file/d/1ovS0EdBVkxU-7NCD56RZbTn9N4jBfxuw/view?usp=sharing)
+
+
 Use val_files/inference_dift/infer_dift_codes.bat to generate feature maps. A folder named feature_maps will be generated in the folder of each objects.
 We provide pre-generated COLMAP dense folder for each objects, named as undistort_feature_dift.
 Please undistort the multi-channel featuremaps and run dense reconstruction with modifed [multi-channel COLMAP](https://github.com/cocoakang/colmap_multichannel).
