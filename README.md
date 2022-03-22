@@ -33,6 +33,8 @@ Please download the data and trained model:
 [teacup](https://www.aliyundrive.com/s/FGLWgXYq3bj)
 [trained model](https://drive.google.com/file/d/1ovS0EdBVkxU-7NCD56RZbTn9N4jBfxuw/view?usp=sharing)
 
+an alternative link: [oneDrive link](https://zjueducn-my.sharepoint.com/:f:/g/personal/cocoa_kang_zju_edu_cn/EvkpIm9MpQ9Lvq6r-WWQxcUBT-Yrnb8wjlAzHnvIlSATAw?e=VCdyje)
+
 
 Use val_files/inference_dift/infer_dift_codes.bat to generate feature maps. A folder named feature_maps will be generated in the folder of each objects.
 We provide pre-generated COLMAP dense folder for each objects, named as undistort_feature_dift.
