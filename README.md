@@ -44,6 +44,7 @@ Please undistort the multi-channel featuremaps and run dense reconstruction with
 
     colmap patch_match_stereo --workspace_path . --PatchMatchStereo.multi_channel 1 --PatchMatchStereo.geom_consistency 1 --PatchMatchStereo.sigma_spatial 15 --PatchMatchStereo.sigma_color 5.0 --PatchMatchStereo.num_samples 20 --PatchMatchStereo.ncc_sigma 1.0
 
+Each object has trans_mat_2_gt.txt contains a rigid transform matrix to transform reconstruction to groudtruth frame. You can use val_files/fusion_transfer_2_gt_cmp.py to produce point cloud and calculate reconstruction quality. Note the results may slightly differ from our reported values in the paper, because of randomality of PCA and COLMAP reconstruction.
 
 ### [DiLiGenT-MV](https://sites.google.com/site/photometricstereodata/mv)
 Please checkout the brach diligent_mv and then follow the instruction in README.md.
@@ -64,3 +65,5 @@ Our source code is released under the GPL-3.0 license for acadmic purposes. The 
 
 For commercial licensing options, please email hwu at acm.org.   
 See COPYING for the open source license.
+
+Note: The reconstruction evaluation tool, ETH3DMultiViewEvaluation.exe and corresponding DLLs in val_files are not bounded with this license.
