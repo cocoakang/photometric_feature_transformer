@@ -26,14 +26,7 @@ Please refer to this [repo](https://github.com/cocoakang/colmap_multichannel) to
 ### Light stage Data
 Please download the data and trained model:
 
-
-[fox](https://www.aliyundrive.com/s/A4hxwm9cdNq)
-[cat](https://www.aliyundrive.com/s/9DMy4WjbjNC)
-[chicken](https://www.aliyundrive.com/s/uWb1pEkzN7y)
-[teacup](https://www.aliyundrive.com/s/FGLWgXYq3bj)
-[trained model](https://drive.google.com/file/d/1ovS0EdBVkxU-7NCD56RZbTn9N4jBfxuw/view?usp=sharing)
-
-an alternative link: [oneDrive link](https://zjueducn-my.sharepoint.com/:f:/g/personal/cocoa_kang_zju_edu_cn/EvkpIm9MpQ9Lvq6r-WWQxcUBT-Yrnb8wjlAzHnvIlSATAw?e=VCdyje)
+[oneDrive link](https://zjueducn-my.sharepoint.com/:f:/g/personal/cocoa_kang_zju_edu_cn/EvkpIm9MpQ9Lvq6r-WWQxcUBT-Yrnb8wjlAzHnvIlSATAw)
 
 
 Use val_files/inference_dift/infer_dift_codes.bat to generate feature maps. A folder named feature_maps will be generated in the folder of each objects.
